@@ -1,1 +1,1 @@
-# https://golang.org/x/ об╣доЮ╧ь╟Э
+# https://golang.org/x/ Д╦▀Г └Г⌡╦Е┘ЁЕ▄┘
