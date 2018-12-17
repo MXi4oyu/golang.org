@@ -72,6 +72,14 @@ var _ foo.T
 				"support move destinations whose base names are not valid " +
 				"go identifiers",
 		},
+		{
+			ctxt: fakeContext(map[string][]string{
+				"foo": {``},
+				"bar": {`package bar`},
+			}),
+			from: "foo", to: "bar",
+			want: `no initial packages were loaded`,
+		},
 	}
 
 	for _, test := range tests {
@@ -203,6 +211,23 @@ import "bar/a"
 
 var _ a.T
 `,
+			},
+		},
+
+		// References into subpackages where directories have overlapped names
+		{
+			ctxt: fakeContext(map[string][]string{
+				"foo":    {},
+				"foo/a":  {`package a`},
+				"foo/aa": {`package bar`},
+				"foo/c":  {`package c; import _ "foo/bar";`},
+			}),
+			from: "foo/a", to: "foo/spam",
+			want: map[string]string{
+				"/go/src/foo/spam/0.go": `package spam
+`,
+				"/go/src/foo/aa/0.go": `package bar`,
+				"/go/src/foo/c/0.go":  `package c; import _ "foo/bar";`,
 			},
 		},
 
@@ -390,11 +415,13 @@ var _ foo.T
 		}
 		moveDirectory = func(from, to string) error {
 			for path, contents := range got {
-				if strings.HasPrefix(path, from) {
-					newPath := strings.Replace(path, from, to, 1)
-					delete(got, path)
-					got[newPath] = contents
+				if !(strings.HasPrefix(path, from) &&
+					(len(path) == len(from) || path[len(from)] == filepath.Separator)) {
+					continue
 				}
+				newPath := strings.Replace(path, from, to, 1)
+				delete(got, path)
+				got[newPath] = contents
 			}
 			return nil
 		}

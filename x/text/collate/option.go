@@ -7,13 +7,13 @@ package collate
 import (
 	"sort"
 
-	"golang.org/x/text/collate/colltab"
+	"golang.org/x/text/internal/colltab"
 	"golang.org/x/text/language"
 	"golang.org/x/text/unicode/norm"
 )
 
 // newCollator creates a new collator with default options configured.
-func newCollator(t colltab.Weigher) *Collator {
+func newCollator(t colltab.Weighter) *Collator {
 	// Initialize a collator with default options.
 	c := &Collator{
 		options: options{
@@ -25,8 +25,6 @@ func newCollator(t colltab.Weigher) *Collator {
 			t: t,
 		},
 	}
-	c._iter[0].init(c)
-	c._iter[1].init(c)
 
 	// TODO: store vt in tags or remove.
 	c.variableTop = t.Top()
@@ -70,6 +68,7 @@ type options struct {
 	// numeric specifies whether any sequence of decimal digits (category is Nd)
 	// is sorted at a primary level with its numeric value.
 	// For example, "A-21" < "A-123".
+	// This option is set by wrapping the main Weighter with NewNumericWeighter.
 	numeric bool
 
 	// alternate specifies an alternative handling of variables.
@@ -79,7 +78,7 @@ type options struct {
 	// variable.
 	variableTop uint32
 
-	t colltab.Weigher
+	t colltab.Weighter
 
 	f norm.Form
 }
@@ -166,7 +165,7 @@ var (
 	IgnoreWidth Option = ignoreWidth
 	ignoreWidth        = Option{2, ignoreWidthF}
 
-	// Loose sets the collator to ignore diacritics, case and weight.
+	// Loose sets the collator to ignore diacritics, case and width.
 	Loose Option = loose
 	loose        = Option{4, looseF}
 
@@ -218,7 +217,7 @@ func Reorder(s ...string) Option {
 // alternateHandling identifies the various ways in which variables are handled.
 // A rune with a primary weight lower than the variable top is considered a
 // variable.
-// See http://www.unicode.org/reports/tr10/#Variable_Weighting for details.
+// See https://www.unicode.org/reports/tr10/#Variable_Weighting for details.
 type alternateHandling int
 
 const (

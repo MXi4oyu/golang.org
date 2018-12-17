@@ -82,7 +82,7 @@ type interfaceSlice struct {
 
 // A RunList is a list of entries that can be sorted according to some
 // criteria. A RunList may be compressed by grouping "runs" of entries
-// which are equal (according to the sort critera) into a new RunList of
+// which are equal (according to the sort criteria) into a new RunList of
 // runs. For instance, a RunList containing pairs (x, y) may be compressed
 // into a RunList containing pair runs (x, {y}) where each run consists of
 // a list of y's with the same x.
@@ -1429,15 +1429,6 @@ func (c *Corpus) invalidateIndex() {
 	c.refreshMetadata()
 }
 
-// indexUpToDate() returns true if the search index is not older
-// than any of the file systems under godoc's observation.
-//
-func (c *Corpus) indexUpToDate() bool {
-	_, fsTime := c.fsModified.Get()
-	_, siTime := c.searchIndex.Get()
-	return !fsTime.After(siTime)
-}
-
 // feedDirnames feeds the directory names of all directories
 // under the file system given by root to channel c.
 //
@@ -1541,7 +1532,6 @@ func (c *Corpus) RunIndexer() {
 	}
 
 	// Repeatedly update the package directory tree and index.
-	// TODO(bgarcia): Use fsnotify to only update when notified of a filesystem change.
 	for {
 		c.initFSTree()
 		c.UpdateIndex()

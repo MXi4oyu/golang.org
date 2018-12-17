@@ -19,7 +19,7 @@ import (
 	"golang.org/x/tools/refactor/importgraph"
 )
 
-// Implements displays the "implements" relation as it pertains to the
+// The implements function displays the "implements" relation as it pertains to the
 // selected type.
 // If the selection is a method, 'implements' displays
 // the corresponding methods of the types that would have been reported
@@ -102,16 +102,20 @@ func implements(q *Query) error {
 	}
 
 	// Find all named types, even local types (which can have
-	// methods via promotion) and the built-in "error".
-	var allNamed []types.Type
+	// methods due to promotion) and the built-in "error".
+	// We ignore aliases 'type M = N' to avoid duplicate
+	// reporting of the Named type N.
+	var allNamed []*types.Named
 	for _, info := range lprog.AllPackages {
 		for _, obj := range info.Defs {
-			if obj, ok := obj.(*types.TypeName); ok {
-				allNamed = append(allNamed, obj.Type())
+			if obj, ok := obj.(*types.TypeName); ok && !isAlias(obj) {
+				if named, ok := obj.Type().(*types.Named); ok {
+					allNamed = append(allNamed, named)
+				}
 			}
 		}
 	}
-	allNamed = append(allNamed, types.Universe.Lookup("error").Type())
+	allNamed = append(allNamed, types.Universe.Lookup("error").Type().(*types.Named))
 
 	var msets typeutil.MethodSetCache
 

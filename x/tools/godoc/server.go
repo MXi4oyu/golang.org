@@ -7,6 +7,7 @@ package godoc
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/build"
@@ -55,7 +56,7 @@ func (s *handlerServer) registerWithMux(mux *http.ServeMux) {
 // set to the respective error but the error is not logged.
 //
 func (h *handlerServer) GetPageInfo(abspath, relpath string, mode PageInfoMode, goos, goarch string) *PageInfo {
-	info := &PageInfo{Dirname: abspath}
+	info := &PageInfo{Dirname: abspath, Mode: mode}
 
 	// Restrict to the package files that would be used when building
 	// the package on this system.  This makes sure that if there are
@@ -65,6 +66,10 @@ func (h *handlerServer) GetPageInfo(abspath, relpath string, mode PageInfoMode, 
 	// are used.
 	ctxt := build.Default
 	ctxt.IsAbsPath = pathpkg.IsAbs
+	ctxt.IsDir = func(path string) bool {
+		fi, err := h.c.fs.Stat(filepath.ToSlash(path))
+		return err == nil && fi.IsDir()
+	}
 	ctxt.ReadDir = func(dir string) ([]os.FileInfo, error) {
 		f, err := h.c.fs.ReadDir(filepath.ToSlash(dir))
 		filtered := make([]os.FileInfo, 0, len(f))
@@ -83,6 +88,14 @@ func (h *handlerServer) GetPageInfo(abspath, relpath string, mode PageInfoMode, 
 		return ioutil.NopCloser(bytes.NewReader(data)), nil
 	}
 
+	// Make the syscall/js package always visible by default.
+	// It defaults to the host's GOOS/GOARCH, and golang.org's
+	// linux/amd64 means the wasm syscall/js package was blank.
+	// And you can't run godoc on js/wasm anyway, so host defaults
+	// don't make sense here.
+	if goos == "" && goarch == "" && relpath == "syscall/js" {
+		goos, goarch = "js", "wasm"
+	}
 	if goos != "" {
 		ctxt.GOOS = goos
 	}
@@ -195,14 +208,17 @@ func (h *handlerServer) GetPageInfo(abspath, relpath string, mode PageInfoMode, 
 		timestamp = ts
 	}
 	if dir == nil {
-		// no directory tree present (too early after startup or
-		// command-line mode); compute one level for this page
+		// TODO(agnivade): handle this case better, now since there is no CLI mode.
+		// no directory tree present (happens in command-line mode);
+		// compute 2 levels for this page. The second level is to
+		// get the synopses of sub-directories.
 		// note: cannot use path filter here because in general
-		//       it doesn't contain the FSTree path
-		dir = h.c.newDirectory(abspath, 1)
+		// it doesn't contain the FSTree path
+		dir = h.c.newDirectory(abspath, 2)
 		timestamp = time.Now()
 	}
 	info.Dirs = dir.listing(true, func(path string) bool { return h.includePath(path, mode) })
+
 	info.DirTime = timestamp
 	info.DirFlat = mode&FlatDir != 0
 
@@ -243,6 +259,12 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	relpath := pathpkg.Clean(r.URL.Path[len(h.stripPrefix)+1:])
+
+	if !h.corpusInitialized() {
+		h.p.ServeError(w, r, relpath, errors.New("Scan is not yet complete. Please retry after a few moments"))
+		return
+	}
+
 	abspath := pathpkg.Join(h.fsRoot, relpath)
 	mode := h.p.GetPageInfoMode(r)
 	if relpath == builtinPkgPath {
@@ -252,11 +274,6 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if info.Err != nil {
 		log.Print(info.Err)
 		h.p.ServeError(w, r, relpath, info.Err)
-		return
-	}
-
-	if mode&NoHTML != 0 {
-		h.p.ServeText(w, applyTemplate(h.p.PackageText, "packageText", info))
 		return
 	}
 
@@ -299,6 +316,7 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Emit JSON array for type information.
 	pi := h.c.Analysis.PackageInfo(relpath)
+	hasTreeView := len(pi.CallGraph) != 0
 	info.CallGraphIndex = pi.CallGraphIndex
 	info.CallGraph = htmltemplate.JS(marshalJSON(pi.CallGraph))
 	info.AnalysisData = htmltemplate.JS(marshalJSON(pi.Types))
@@ -307,19 +325,34 @@ func (h *handlerServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		info.TypeInfoIndex[ti.Name] = i
 	}
 
-	info.Share = allowShare(r)
+	info.GoogleCN = googleCN(r)
+	var body []byte
+	if info.Dirname == "/src" {
+		body = applyTemplate(h.p.PackageRootHTML, "packageRootHTML", info)
+	} else {
+		body = applyTemplate(h.p.PackageHTML, "packageHTML", info)
+	}
 	h.p.ServePage(w, Page{
 		Title:    title,
 		Tabtitle: tabtitle,
 		Subtitle: subtitle,
-		Body:     applyTemplate(h.p.PackageHTML, "packageHTML", info),
-		Share:    info.Share,
+		Body:     body,
+		GoogleCN: info.GoogleCN,
+		TreeView: hasTreeView,
 	})
+}
+
+func (h *handlerServer) corpusInitialized() bool {
+	h.c.initMu.RLock()
+	defer h.c.initMu.RUnlock()
+	return h.c.initDone
 }
 
 type PageInfoMode uint
 
 const (
+	PageInfoModeQueryString = "m" // query string where PageInfoMode is stored
+
 	NoFiltering PageInfoMode = 1 << iota // do not filter exports
 	AllMethods                           // show all embedded methods
 	ShowSource                           // show source code, do not extract documentation
@@ -337,12 +370,32 @@ var modeNames = map[string]PageInfoMode{
 	"flat":    FlatDir,
 }
 
+// generate a query string for persisting PageInfoMode between pages.
+func modeQueryString(mode PageInfoMode) string {
+	if modeNames := mode.names(); len(modeNames) > 0 {
+		return "?m=" + strings.Join(modeNames, ",")
+	}
+	return ""
+}
+
+// alphabetically sorted names of active flags for a PageInfoMode.
+func (m PageInfoMode) names() []string {
+	var names []string
+	for name, mode := range modeNames {
+		if m&mode != 0 {
+			names = append(names, name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
 // GetPageInfoMode computes the PageInfoMode flags by analyzing the request
 // URL form value "m". It is value is a comma-separated list of mode names
 // as defined by modeNames (e.g.: m=src,text).
 func (p *Presentation) GetPageInfoMode(r *http.Request) PageInfoMode {
 	var mode PageInfoMode
-	for _, k := range strings.Split(r.FormValue("m"), ",") {
+	for _, k := range strings.Split(r.FormValue(PageInfoModeQueryString), ",") {
 		if m, found := modeNames[strings.TrimSpace(k)]; found {
 			mode |= m
 		}
@@ -519,7 +572,7 @@ func (p *Presentation) serveTextFile(w http.ResponseWriter, r *http.Request, abs
 		return
 	}
 
-	if r.FormValue("m") == "text" {
+	if r.FormValue(PageInfoModeQueryString) == "text" {
 		p.ServeText(w, src)
 		return
 	}
@@ -552,10 +605,11 @@ func (p *Presentation) serveTextFile(w http.ResponseWriter, r *http.Request, abs
 	fmt.Fprintf(&buf, `<p><a href="/%s?m=text">View as plain text</a></p>`, htmlpkg.EscapeString(relpath))
 
 	p.ServePage(w, Page{
-		Title:    title + " " + relpath,
+		Title:    title,
+		SrcPath:  relpath,
 		Tabtitle: relpath,
 		Body:     buf.Bytes(),
-		Share:    allowShare(r),
+		GoogleCN: googleCN(r),
 	})
 }
 
@@ -594,7 +648,24 @@ func formatGoSource(buf *bytes.Buffer, text []byte, links []analysis.Link, patte
 	// linkWriter, so we have to add line spans as another pass.
 	n := 1
 	for _, line := range bytes.Split(buf.Bytes(), []byte("\n")) {
-		fmt.Fprintf(saved, "<span id=\"L%d\" class=\"ln\">%6d</span>\t", n, n)
+		// The line numbers are inserted into the document via a CSS ::before
+		// pseudo-element. This prevents them from being copied when users
+		// highlight and copy text.
+		// ::before is supported in 98% of browsers: https://caniuse.com/#feat=css-gencontent
+		// This is also the trick Github uses to hide line numbers.
+		//
+		// The first tab for the code snippet needs to start in column 9, so
+		// it indents a full 8 spaces, hence the two nbsp's. Otherwise the tab
+		// character only indents a short amount.
+		//
+		// Due to rounding and font width Firefox might not treat 8 rendered
+		// characters as 8 characters wide, and subsequently may treat the tab
+		// character in the 9th position as moving the width from (7.5 or so) up
+		// to 8. See
+		// https://github.com/webcompat/web-bugs/issues/17530#issuecomment-402675091
+		// for a fuller explanation. The solution is to add a CSS class to
+		// explicitly declare the width to be 8 characters.
+		fmt.Fprintf(saved, `<span id="L%d" class="ln">%6d&nbsp;&nbsp;</span>`, n, n)
 		n++
 		saved.Write(line)
 		saved.WriteByte('\n')
@@ -613,10 +684,11 @@ func (p *Presentation) serveDirectory(w http.ResponseWriter, r *http.Request, ab
 	}
 
 	p.ServePage(w, Page{
-		Title:    "Directory " + relpath,
+		Title:    "Directory",
+		SrcPath:  relpath,
 		Tabtitle: relpath,
 		Body:     applyTemplate(p.DirlistHTML, "dirlistHTML", list),
-		Share:    allowShare(r),
+		GoogleCN: googleCN(r),
 	})
 }
 
@@ -645,7 +717,7 @@ func (p *Presentation) ServeHTMLDoc(w http.ResponseWriter, r *http.Request, absp
 	page := Page{
 		Title:    meta.Title,
 		Subtitle: meta.Subtitle,
-		Share:    allowShare(r),
+		GoogleCN: googleCN(r),
 	}
 
 	// evaluate as template if indicated

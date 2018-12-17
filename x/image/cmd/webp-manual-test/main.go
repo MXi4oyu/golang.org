@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"golang.org/x/image/webp"
-	"golang.org/x/image/webp/nycbcra"
 )
 
 var (
@@ -38,13 +37,9 @@ var (
 
 func main() {
 	flag.Parse()
-	if *dwebp == "" {
+	if err := checkDwebp(); err != nil {
 		flag.Usage()
-		log.Fatal("dwebp flag was not specified")
-	}
-	if _, err := os.Stat(*dwebp); err != nil {
-		flag.Usage()
-		log.Fatalf("could not find dwebp program at %q", *dwebp)
+		log.Fatal(err)
 	}
 	if *testdata == "" {
 		flag.Usage()
@@ -79,6 +74,25 @@ func main() {
 	if nFail != 0 {
 		os.Exit(1)
 	}
+}
+
+func checkDwebp() error {
+	if *dwebp == "" {
+		return fmt.Errorf("dwebp flag was not specified")
+	}
+	if _, err := os.Stat(*dwebp); err != nil {
+		return fmt.Errorf("could not find dwebp program at %q", *dwebp)
+	}
+	b, err := exec.Command(*dwebp, "-version").Output()
+	if err != nil {
+		return fmt.Errorf("could not determine the dwebp program version for %q: %v", *dwebp, err)
+	}
+	switch s := string(bytes.TrimSpace(b)); s {
+	case "0.4.0", "0.4.1", "0.4.2":
+		return fmt.Errorf("the dwebp program version %q for %q has a known bug "+
+			"(https://bugs.chromium.org/p/webp/issues/detail?id=239). Please use a newer version.", s, *dwebp)
+	}
+	return nil
 }
 
 // test tests a single WEBP image.
@@ -146,12 +160,12 @@ func encodePAM(gotImage image.Image) ([]byte, error) {
 func encodePGM(gotImage image.Image) ([]byte, error) {
 	var (
 		m  *image.YCbCr
-		ma *nycbcra.Image
+		ma *image.NYCbCrA
 	)
 	switch g := gotImage.(type) {
 	case *image.YCbCr:
 		m = g
-	case *nycbcra.Image:
+	case *image.NYCbCrA:
 		m = &g.YCbCr
 		ma = g
 	default:

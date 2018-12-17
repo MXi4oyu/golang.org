@@ -6,9 +6,6 @@
 
 package main
 
-// This program generates tables.go:
-//	go run maketables.go | gofmt > tables.go
-
 import (
 	"bufio"
 	"fmt"
@@ -19,6 +16,7 @@ import (
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/internal/gen"
 )
 
 const ascii = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f" +
@@ -29,31 +27,127 @@ const ascii = "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"
 
 var encodings = []struct {
 	name        string
+	mib         string
 	comment     string
 	varName     string
 	replacement byte
 	mapping     string
 }{
 	{
+		"IBM Code Page 037",
+		"IBM037",
+		"",
+		"CodePage037",
+		0x3f,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM037-2.1.2.ucm",
+	},
+	{
 		"IBM Code Page 437",
+		"PC8CodePage437",
 		"",
 		"CodePage437",
 		encoding.ASCIISub,
-		ascii +
-			"ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒ" +
-			"áíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐" +
-			"└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀" +
-			"αßΓπΣσµτΦΘΩδ∞∅∈∩≡±≥≤⌠⌡÷≈°•·√ⁿ²∎\u00a0",
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM437-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 850",
+		"PC850Multilingual",
+		"",
+		"CodePage850",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM850-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 852",
+		"PCp852",
+		"",
+		"CodePage852",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM852-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 855",
+		"IBM855",
+		"",
+		"CodePage855",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM855-2.1.2.ucm",
+	},
+	{
+		"Windows Code Page 858", // PC latin1 with Euro
+		"IBM00858",
+		"",
+		"CodePage858",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/windows-858-2000.ucm",
+	},
+	{
+		"IBM Code Page 860",
+		"IBM860",
+		"",
+		"CodePage860",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM860-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 862",
+		"PC862LatinHebrew",
+		"",
+		"CodePage862",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM862-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 863",
+		"IBM863",
+		"",
+		"CodePage863",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM863-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 865",
+		"IBM865",
+		"",
+		"CodePage865",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM865-2.1.2.ucm",
 	},
 	{
 		"IBM Code Page 866",
+		"IBM866",
 		"",
 		"CodePage866",
 		encoding.ASCIISub,
 		"http://encoding.spec.whatwg.org/index-ibm866.txt",
 	},
 	{
+		"IBM Code Page 1047",
+		"IBM1047",
+		"",
+		"CodePage1047",
+		0x3f,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/glibc-IBM1047-2.1.2.ucm",
+	},
+	{
+		"IBM Code Page 1140",
+		"IBM01140",
+		"",
+		"CodePage1140",
+		0x3f,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/ibm-1140_P100-1997.ucm",
+	},
+	{
+		"ISO 8859-1",
+		"ISOLatin1",
+		"",
+		"ISO8859_1",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/iso-8859_1-1998.ucm",
+	},
+	{
 		"ISO 8859-2",
+		"ISOLatin2",
 		"",
 		"ISO8859_2",
 		encoding.ASCIISub,
@@ -61,6 +155,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-3",
+		"ISOLatin3",
 		"",
 		"ISO8859_3",
 		encoding.ASCIISub,
@@ -68,6 +163,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-4",
+		"ISOLatin4",
 		"",
 		"ISO8859_4",
 		encoding.ASCIISub,
@@ -75,6 +171,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-5",
+		"ISOLatinCyrillic",
 		"",
 		"ISO8859_5",
 		encoding.ASCIISub,
@@ -82,13 +179,15 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-6",
+		"ISOLatinArabic",
 		"",
-		"ISO8859_6",
+		"ISO8859_6,ISO8859_6E,ISO8859_6I",
 		encoding.ASCIISub,
 		"http://encoding.spec.whatwg.org/index-iso-8859-6.txt",
 	},
 	{
 		"ISO 8859-7",
+		"ISOLatinGreek",
 		"",
 		"ISO8859_7",
 		encoding.ASCIISub,
@@ -96,13 +195,23 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-8",
+		"ISOLatinHebrew",
 		"",
-		"ISO8859_8",
+		"ISO8859_8,ISO8859_8E,ISO8859_8I",
 		encoding.ASCIISub,
 		"http://encoding.spec.whatwg.org/index-iso-8859-8.txt",
 	},
 	{
+		"ISO 8859-9",
+		"ISOLatin5",
+		"",
+		"ISO8859_9",
+		encoding.ASCIISub,
+		"http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/iso-8859_9-1999.ucm",
+	},
+	{
 		"ISO 8859-10",
+		"ISOLatin6",
 		"",
 		"ISO8859_10",
 		encoding.ASCIISub,
@@ -110,6 +219,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-13",
+		"ISO885913",
 		"",
 		"ISO8859_13",
 		encoding.ASCIISub,
@@ -117,6 +227,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-14",
+		"ISO885914",
 		"",
 		"ISO8859_14",
 		encoding.ASCIISub,
@@ -124,6 +235,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-15",
+		"ISO885915",
 		"",
 		"ISO8859_15",
 		encoding.ASCIISub,
@@ -131,6 +243,7 @@ var encodings = []struct {
 	},
 	{
 		"ISO 8859-16",
+		"ISO885916",
 		"",
 		"ISO8859_16",
 		encoding.ASCIISub,
@@ -138,6 +251,7 @@ var encodings = []struct {
 	},
 	{
 		"KOI8-R",
+		"KOI8R",
 		"",
 		"KOI8R",
 		encoding.ASCIISub,
@@ -145,12 +259,14 @@ var encodings = []struct {
 	},
 	{
 		"KOI8-U",
+		"KOI8U",
 		"",
 		"KOI8U",
 		encoding.ASCIISub,
 		"http://encoding.spec.whatwg.org/index-koi8-u.txt",
 	},
 	{
+		"Macintosh",
 		"Macintosh",
 		"",
 		"Macintosh",
@@ -159,6 +275,7 @@ var encodings = []struct {
 	},
 	{
 		"Macintosh Cyrillic",
+		"MacintoshCyrillic",
 		"",
 		"MacintoshCyrillic",
 		encoding.ASCIISub,
@@ -166,6 +283,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 874",
+		"Windows874",
 		"",
 		"Windows874",
 		encoding.ASCIISub,
@@ -173,6 +291,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1250",
+		"Windows1250",
 		"",
 		"Windows1250",
 		encoding.ASCIISub,
@@ -180,6 +299,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1251",
+		"Windows1251",
 		"",
 		"Windows1251",
 		encoding.ASCIISub,
@@ -187,6 +307,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1252",
+		"Windows1252",
 		"",
 		"Windows1252",
 		encoding.ASCIISub,
@@ -194,6 +315,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1253",
+		"Windows1253",
 		"",
 		"Windows1253",
 		encoding.ASCIISub,
@@ -201,6 +323,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1254",
+		"Windows1254",
 		"",
 		"Windows1254",
 		encoding.ASCIISub,
@@ -208,6 +331,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1255",
+		"Windows1255",
 		"",
 		"Windows1255",
 		encoding.ASCIISub,
@@ -215,6 +339,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1256",
+		"Windows1256",
 		"",
 		"Windows1256",
 		encoding.ASCIISub,
@@ -222,6 +347,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1257",
+		"Windows1257",
 		"",
 		"Windows1257",
 		encoding.ASCIISub,
@@ -229,6 +355,7 @@ var encodings = []struct {
 	},
 	{
 		"Windows 1258",
+		"Windows1258",
 		"",
 		"Windows1258",
 		encoding.ASCIISub,
@@ -236,6 +363,7 @@ var encodings = []struct {
 	},
 	{
 		"X-User-Defined",
+		"XUserDefined",
 		"It is defined at http://encoding.spec.whatwg.org/#x-user-defined",
 		"XUserDefined",
 		encoding.ASCIISub,
@@ -294,14 +422,63 @@ func getWHATWG(url string) string {
 	return ascii + string(mapping)
 }
 
+func getUCM(url string) string {
+	res, err := http.Get(url)
+	if err != nil {
+		log.Fatalf("%q: Get: %v", url, err)
+	}
+	defer res.Body.Close()
+
+	mapping := make([]rune, 256)
+	for i := range mapping {
+		mapping[i] = '\ufffd'
+	}
+
+	charsFound := 0
+	scanner := bufio.NewScanner(res.Body)
+	for scanner.Scan() {
+		s := strings.TrimSpace(scanner.Text())
+		if s == "" || s[0] == '#' {
+			continue
+		}
+		var c byte
+		var r rune
+		if _, err := fmt.Sscanf(s, `<U%x> \x%x |0`, &r, &c); err != nil {
+			continue
+		}
+		mapping[c] = r
+		charsFound++
+	}
+
+	if charsFound < 200 {
+		log.Fatalf("%q: only %d characters found (wrong page format?)", url, charsFound)
+	}
+
+	return string(mapping)
+}
+
 func main() {
-	buf := make([]byte, 8)
-	fmt.Printf("// generated by go run maketables.go; DO NOT EDIT\n\n")
-	fmt.Printf("package charmap\n\n")
-	fmt.Printf("import \"golang.org/x/text/encoding\"\n\n")
+	mibs := map[string]bool{}
+	all := []string{}
+
+	w := gen.NewCodeWriter()
+	defer w.WriteGoFile("tables.go", "charmap")
+
+	printf := func(s string, a ...interface{}) { fmt.Fprintf(w, s, a...) }
+
+	printf("import (\n")
+	printf("\t\"golang.org/x/text/encoding\"\n")
+	printf("\t\"golang.org/x/text/encoding/internal/identifier\"\n")
+	printf(")\n\n")
 	for _, e := range encodings {
-		if strings.HasPrefix(e.mapping, "http://encoding.spec.whatwg.org/") {
+		varNames := strings.Split(e.varName, ",")
+		all = append(all, varNames...)
+		varName := varNames[0]
+		switch {
+		case strings.HasPrefix(e.mapping, "http://encoding.spec.whatwg.org/"):
 			e.mapping = getWHATWG(e.mapping)
+		case strings.HasPrefix(e.mapping, "http://source.icu-project.org/repos/icu/data/trunk/charset/data/ucm/"):
+			e.mapping = getUCM(e.mapping)
 		}
 
 		asciiSuperset, low := strings.HasPrefix(e.mapping, ascii), 0x00
@@ -309,42 +486,44 @@ func main() {
 			low = 0x80
 		}
 		lvn := 1
-		if strings.HasPrefix(e.varName, "ISO") || strings.HasPrefix(e.varName, "KOI") {
+		if strings.HasPrefix(varName, "ISO") || strings.HasPrefix(varName, "KOI") {
 			lvn = 3
 		}
-		lowerVarName := strings.ToLower(e.varName[:lvn]) + e.varName[lvn:]
-		fmt.Printf("// %s is the %s encoding.\n", e.varName, e.name)
+		lowerVarName := strings.ToLower(varName[:lvn]) + varName[lvn:]
+		printf("// %s is the %s encoding.\n", varName, e.name)
 		if e.comment != "" {
-			fmt.Printf("//\n// %s\n", e.comment)
+			printf("//\n// %s\n", e.comment)
 		}
-		fmt.Printf("var %s encoding.Encoding = &%s\n\nvar %s = charmap{\nname: %q,\n",
-			e.varName, lowerVarName, lowerVarName, e.name)
-		fmt.Printf("asciiSuperset: %t,\n", asciiSuperset)
-		fmt.Printf("low: 0x%02x,\n", low)
-		fmt.Printf("replacement: 0x%02x,\n", e.replacement)
+		printf("var %s *Charmap = &%s\n\nvar %s = Charmap{\nname: %q,\n",
+			varName, lowerVarName, lowerVarName, e.name)
+		if mibs[e.mib] {
+			log.Fatalf("MIB type %q declared multiple times.", e.mib)
+		}
+		printf("mib: identifier.%s,\n", e.mib)
+		printf("asciiSuperset: %t,\n", asciiSuperset)
+		printf("low: 0x%02x,\n", low)
+		printf("replacement: 0x%02x,\n", e.replacement)
 
-		fmt.Printf("decode: [256]utf8Enc{\n")
+		printf("decode: [256]utf8Enc{\n")
 		i, backMapping := 0, map[rune]byte{}
 		for _, c := range e.mapping {
-			if _, ok := backMapping[c]; !ok {
+			if _, ok := backMapping[c]; !ok && c != utf8.RuneError {
 				backMapping[c] = byte(i)
 			}
-			for j := range buf {
-				buf[j] = 0
-			}
-			n := utf8.EncodeRune(buf, c)
+			var buf [8]byte
+			n := utf8.EncodeRune(buf[:], c)
 			if n > 3 {
 				panic(fmt.Sprintf("rune %q (%U) is too long", c, c))
 			}
-			fmt.Printf("{%d,[3]byte{0x%02x,0x%02x,0x%02x}},", n, buf[0], buf[1], buf[2])
+			printf("{%d,[3]byte{0x%02x,0x%02x,0x%02x}},", n, buf[0], buf[1], buf[2])
 			if i%2 == 1 {
-				fmt.Printf("\n")
+				printf("\n")
 			}
 			i++
 		}
-		fmt.Printf("},\n")
+		printf("},\n")
 
-		fmt.Printf("encode: [256]uint32{\n")
+		printf("encode: [256]uint32{\n")
 		encode := make([]uint32, 0, 256)
 		for c, i := range backMapping {
 			encode = append(encode, uint32(i)<<24|uint32(c))
@@ -354,13 +533,20 @@ func main() {
 			encode = append(encode, encode[len(encode)-1])
 		}
 		for i, enc := range encode {
-			fmt.Printf("0x%08x,", enc)
+			printf("0x%08x,", enc)
 			if i%8 == 7 {
-				fmt.Printf("\n")
+				printf("\n")
 			}
 		}
-		fmt.Printf("},\n}\n")
+		printf("},\n}\n")
+
+		// Add an estimate of the size of a single Charmap{} struct value, which
+		// includes two 256 elem arrays of 4 bytes and some extra fields, which
+		// align to 3 uint64s on 64-bit architectures.
+		w.Size += 2*4*256 + 3*8
 	}
+	// TODO: add proper line breaking.
+	printf("var listAll = []encoding.Encoding{\n%s,\n}\n\n", strings.Join(all, ",\n"))
 }
 
 type byRune []uint32

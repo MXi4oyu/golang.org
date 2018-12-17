@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 package loader
 
 // See doc.go for package documentation and implementation notes.
@@ -24,6 +22,7 @@ import (
 	"time"
 
 	"golang.org/x/tools/go/ast/astutil"
+	"golang.org/x/tools/go/internal/cgo"
 )
 
 var ignoreVendor build.ImportMode
@@ -107,7 +106,7 @@ type Config struct {
 	// conventions, for example.
 	//
 	// It must be safe to call concurrently from multiple goroutines.
-	FindPackage func(ctxt *build.Context, fromDir, importPath string, mode build.ImportMode) (*build.Package, error)
+	FindPackage func(ctxt *build.Context, importPath, fromDir string, mode build.ImportMode) (*build.Package, error)
 
 	// AfterTypeCheck is called immediately after a list of files
 	// has been type-checked and appended to info.Files.
@@ -604,7 +603,7 @@ func (conf *Config) Load() (*Program, error) {
 
 	// Create packages specified by conf.CreatePkgs.
 	for _, cp := range conf.CreatePkgs {
-		files, errs := parseFiles(conf.fset(), conf.build(), nil, ".", cp.Filenames, conf.ParserMode)
+		files, errs := parseFiles(conf.fset(), conf.build(), nil, conf.Cwd, cp.Filenames, conf.ParserMode)
 		files = append(files, cp.Files...)
 
 		path := cp.Path
@@ -616,7 +615,7 @@ func (conf *Config) Load() (*Program, error) {
 			}
 		}
 
-		dir := "."
+		dir := conf.Cwd
 		if len(files) > 0 && files[0].Pos().IsValid() {
 			dir = filepath.Dir(conf.fset().File(files[0].Pos()).Name())
 		}
@@ -756,7 +755,7 @@ func (conf *Config) parsePackageFiles(bp *build.Package, which rune) ([]*ast.Fil
 
 	// Preprocess CgoFiles and parse the outputs (sequentially).
 	if which == 'g' && bp.CgoFiles != nil {
-		cgofiles, err := processCgoFiles(bp, conf.fset(), conf.DisplayPath, conf.ParserMode)
+		cgofiles, err := cgo.ProcessFiles(bp, conf.fset(), conf.DisplayPath, conf.ParserMode)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
@@ -781,7 +780,7 @@ func (imp *importer) doImport(from *PackageInfo, to string) (*types.Package, err
 	if to == "C" {
 		// This should be unreachable, but ad hoc packages are
 		// not currently subject to cgo preprocessing.
-		// See https://github.com/golang/go/issues/11627.
+		// See https://golang.org/issue/11627.
 		return nil, fmt.Errorf(`the loader doesn't cgo-process ad hoc packages like %q; see Go issue 11627`,
 			from.Pkg.Path())
 	}
@@ -1011,10 +1010,18 @@ func (imp *importer) addFiles(info *PackageInfo, files []*ast.File, cycleCheck b
 			time.Since(imp.start), info.Pkg.Path(), len(files))
 	}
 
-	// Ignore the returned (first) error since we
-	// already collect them all in the PackageInfo.
-	info.checker.Files(files)
-	info.Files = append(info.Files, files...)
+	// Don't call checker.Files on Unsafe, even with zero files,
+	// because it would mutate the package, which is a global.
+	if info.Pkg == types.Unsafe {
+		if len(files) > 0 {
+			panic(`"unsafe" package contains unexpected files`)
+		}
+	} else {
+		// Ignore the returned (first) error since we
+		// already collect them all in the PackageInfo.
+		info.checker.Files(files)
+		info.Files = append(info.Files, files...)
+	}
 
 	if imp.conf.AfterTypeCheck != nil {
 		imp.conf.AfterTypeCheck(info, files)
@@ -1027,7 +1034,12 @@ func (imp *importer) addFiles(info *PackageInfo, files []*ast.File, cycleCheck b
 }
 
 func (imp *importer) newPackageInfo(path, dir string) *PackageInfo {
-	pkg := types.NewPackage(path, "")
+	var pkg *types.Package
+	if path == "unsafe" {
+		pkg = types.Unsafe
+	} else {
+		pkg = types.NewPackage(path, "")
+	}
 	info := &PackageInfo{
 		Pkg: pkg,
 		Info: types.Info{

@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 // No testdata on Android.
 
 // +build !android
@@ -17,6 +15,7 @@ import (
 	"go/types"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -25,8 +24,6 @@ import (
 	"golang.org/x/tools/go/buildutil"
 	"golang.org/x/tools/go/loader"
 )
-
-var go16 bool // Go version >= go1.6
 
 // TestFromArgs checks that conf.FromArgs populates conf correctly.
 // It does no I/O.
@@ -131,6 +128,10 @@ func TestLoad_MissingInitialPackage(t *testing.T) {
 }
 
 func TestLoad_MissingInitialPackage_AllowErrors(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo has no standard library test files")
+	}
+
 	var conf loader.Config
 	conf.AllowErrors = true
 	conf.Import("nosuchpkg")
@@ -255,6 +256,10 @@ func TestLoad_FromSource_Success(t *testing.T) {
 }
 
 func TestLoad_FromImports_Success(t *testing.T) {
+	if runtime.Compiler == "gccgo" {
+		t.Skip("gccgo has no standard library test files")
+	}
+
 	var conf loader.Config
 	conf.ImportWithTests("fmt")
 	conf.ImportWithTests("errors")
@@ -400,10 +405,6 @@ func TestCwd(t *testing.T) {
 }
 
 func TestLoad_vendor(t *testing.T) {
-	if !go16 {
-		// TODO(adonovan): delete in due course.
-		t.Skipf("vendoring requires Go 1.6")
-	}
 	pkgs := map[string]string{
 		"a":          `package a; import _ "x"`,
 		"a/vendor":   ``, // mkdir a/vendor
@@ -437,10 +438,6 @@ func TestLoad_vendor(t *testing.T) {
 }
 
 func TestVendorCwd(t *testing.T) {
-	if !go16 {
-		// TODO(adonovan): delete in due course.
-		t.Skipf("vendoring requires Go 1.6")
-	}
 	// Test the interaction of cwd and vendor directories.
 	ctxt := fakeContext(map[string]string{
 		"net":          ``, // mkdir net
@@ -454,8 +451,8 @@ func TestVendorCwd(t *testing.T) {
 	}{
 		{cwd: "/go/src/net", arg: "http"}, // not found
 		{cwd: "/go/src/net", arg: "./http", want: "net/http vendor/hpack"},
-		{cwd: "/go/src/net", arg: "hpack", want: "hpack"},
-		{cwd: "/go/src/vendor", arg: "hpack", want: "hpack"},
+		{cwd: "/go/src/net", arg: "hpack", want: "vendor/hpack"},
+		{cwd: "/go/src/vendor", arg: "hpack", want: "vendor/hpack"},
 		{cwd: "/go/src/vendor", arg: "./hpack", want: "vendor/hpack"},
 	} {
 		conf := loader.Config{
@@ -811,4 +808,18 @@ func created(prog *loader.Program) string {
 		pkgs = append(pkgs, info.Pkg.Path())
 	}
 	return strings.Join(pkgs, " ")
+}
+
+// Load package "io" twice in parallel.
+// When run with -race, this is a regression test for Go issue 20718, in
+// which the global "unsafe" package was modified concurrently.
+func TestLoad1(t *testing.T) { loadIO(t) }
+func TestLoad2(t *testing.T) { loadIO(t) }
+
+func loadIO(t *testing.T) {
+	t.Parallel()
+	conf := &loader.Config{ImportPkgs: map[string]bool{"io": false}}
+	if _, err := conf.Load(); err != nil {
+		t.Fatal(err)
+	}
 }

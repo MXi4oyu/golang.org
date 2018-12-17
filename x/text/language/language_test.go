@@ -32,7 +32,7 @@ func TestIsRoot(t *testing.T) {
 }
 
 func TestEquality(t *testing.T) {
-	for i, tt := range parseTests()[48:49] {
+	for i, tt := range parseTests() {
 		s := tt.in
 		tag := Make(s)
 		t1 := Make(tag.String())
@@ -46,31 +46,53 @@ func TestEquality(t *testing.T) {
 	}
 }
 
-func TestMakeString(t *testing.T) {
-	tests := []struct{ in, out string }{
-		{"und", "und"},
-		{"und", "und-CW"},
-		{"nl", "nl-NL"},
-		{"de-1901", "nl-1901"},
-		{"de-1901", "de-Arab-1901"},
-		{"x-a-b", "de-Arab-x-a-b"},
-		{"x-a-b", "x-a-b"},
+func TestString(t *testing.T) {
+	tests := []string{
+		"no-u-rg-dkzzzz",
 	}
-	for i, tt := range tests {
-		id, _ := Parse(tt.in)
-		mod, _ := Parse(tt.out)
-		id.setTagsFrom(mod)
-		for j := 0; j < 2; j++ {
-			id.remakeString()
-			if str := id.String(); str != tt.out {
-				t.Errorf("%d:%d: found %s; want %s", i, j, id.String(), tt.out)
-			}
+	for i, s := range tests {
+		tag := Make(s)
+		if tag.String() != s {
+			t.Errorf("%d:%s: got %s: want %s (%#v)", i, s, tag.String(), s, tag)
 		}
-		// The bytes to string conversion as used in remakeString
-		// occasionally measures as more than one alloc, breaking this test.
-		// To alleviate this we set the number of runs to more than 1.
-		if n := testing.AllocsPerRun(8, id.remakeString); n > 1 {
-			t.Errorf("%d: # allocs got %.1f; want <= 1", i, n)
+	}
+}
+
+func TestMarshal(t *testing.T) {
+	testCases := []string{
+		// TODO: these values will change with each CLDR update. This issue
+		// will be solved if we decide to fix the indexes.
+		"und",
+		"ca-ES-valencia",
+		"ca-ES-valencia-u-va-posix",
+		"ca-ES-valencia-u-co-phonebk",
+		"ca-ES-valencia-u-co-phonebk-va-posix",
+		"x-klingon",
+		"en-US",
+		"en-US-u-va-posix",
+		"en",
+		"en-u-co-phonebk",
+		"en-001",
+		"sh",
+
+		"en-GB-u-rg-uszzzz",
+		"en-GB-u-rg-uszzzz-va-posix",
+		"en-GB-u-co-phonebk-rg-uszzzz",
+		// Invalid tags should also roundtrip.
+		"en-GB-u-co-phonebk-rg-uszz",
+	}
+	for _, tc := range testCases {
+		var tag Tag
+		err := tag.UnmarshalText([]byte(tc))
+		if err != nil {
+			t.Errorf("UnmarshalText(%q): unexpected error: %v", tc, err)
+		}
+		b, err := tag.MarshalText()
+		if err != nil {
+			t.Errorf("MarshalText(%q): unexpected error: %v", tc, err)
+		}
+		if got := string(b); got != tc {
+			t.Errorf("%s: got %q; want %q", tc, got, tc)
 		}
 	}
 }
@@ -143,7 +165,7 @@ func TestScript(t *testing.T) {
 		{"cmn", "Hans", Low},
 		{"ru", "Cyrl", High},
 		{"ru-RU", "Cyrl", High},
-		{"yue", "Zzzz", No},
+		{"yue", "Hant", Low},
 		{"x-abc", "Zzzz", Low},
 		{"und-zyyy", "Zyyy", Exact},
 	}
@@ -197,17 +219,17 @@ func TestRegion(t *testing.T) {
 		{"en-US", "US", Exact},
 		{"cmn", "CN", Low},
 		{"ru", "RU", Low},
-		{"yue", "ZZ", No},
+		{"yue", "HK", Low},
 		{"x-abc", "ZZ", Low},
 	}
 	for i, tt := range tests {
 		loc, _ := Raw.Parse(tt.loc)
 		reg, conf := loc.Region()
 		if reg.String() != tt.reg {
-			t.Errorf("%d: region was %s; want %s", i, reg, tt.reg)
+			t.Errorf("%d:%s: region was %s; want %s", i, tt.loc, reg, tt.reg)
 		}
 		if conf != tt.conf {
-			t.Errorf("%d: confidence was %d; want %d", i, conf, tt.conf)
+			t.Errorf("%d:%s: confidence was %d; want %d", i, tt.loc, conf, tt.conf)
 		}
 	}
 }
@@ -282,8 +304,7 @@ func TestIsCountry(t *testing.T) {
 		{"XK", true},
 	}
 	for i, tt := range tests {
-		reg, _ := getRegionID([]byte(tt.reg))
-		r := Region{reg}
+		r, _ := ParseRegion(tt.reg)
 		if r.IsCountry() != tt.country {
 			t.Errorf("%d: IsCountry(%s) was %v; want %v", i, tt.reg, r.IsCountry(), tt.country)
 		}
@@ -309,8 +330,7 @@ func TestIsGroup(t *testing.T) {
 		{"XK", false},
 	}
 	for i, tt := range tests {
-		reg, _ := getRegionID([]byte(tt.reg))
-		r := Region{reg}
+		r, _ := ParseRegion(tt.reg)
 		if r.IsGroup() != tt.group {
 			t.Errorf("%d: IsGroup(%s) was %v; want %v", i, tt.reg, r.IsGroup(), tt.group)
 		}
@@ -343,10 +363,9 @@ func TestContains(t *testing.T) {
 		{"155", "EU", false},
 	}
 	for i, tt := range tests {
-		enc, _ := getRegionID([]byte(tt.enclosing))
-		con, _ := getRegionID([]byte(tt.contained))
-		r := Region{enc}
-		if got := r.Contains(Region{con}); got != tt.contains {
+		r := MustParseRegion(tt.enclosing)
+		con := MustParseRegion(tt.contained)
+		if got := r.Contains(con); got != tt.contains {
 			t.Errorf("%d: %s.Contains(%s) was %v; want %v", i, tt.enclosing, tt.contained, got, tt.contains)
 		}
 	}
@@ -459,27 +478,6 @@ func TestRegionTLD(t *testing.T) {
 	}
 }
 
-func TestParseCurrency(t *testing.T) {
-	tests := []struct {
-		in  string
-		out string
-		ok  bool
-	}{
-		{"USD", "USD", true},
-		{"xxx", "XXX", true},
-		{"xts", "XTS", true},
-		{"XX", "XXX", false},
-		{"XXXX", "XXX", false},
-		{"", "XXX", false},
-		{"UUU", "XXX", false}, // unknown
-	}
-	for i, tt := range tests {
-		if x, err := ParseCurrency(tt.in); x.String() != tt.out || err == nil != tt.ok {
-			t.Errorf("%d:%s: was %s, %v; want %s, %v", i, tt.in, x, err == nil, tt.out, tt.ok)
-		}
-	}
-}
-
 func TestCanonicalize(t *testing.T) {
 	// TODO: do a full test using CLDR data in a separate regression test.
 	tests := []struct {
@@ -496,6 +494,7 @@ func TestCanonicalize(t *testing.T) {
 		{"no", "nb", Legacy | CLDR},
 		{"cmn", "cmn", Legacy},
 		{"cmn", "zh", Macro},
+		{"cmn-u-co-stroke", "zh-u-co-stroke", Macro},
 		{"yue", "yue", Macro},
 		{"nb", "no", Macro},
 		{"nb", "nb", Macro | CLDR},
@@ -513,12 +512,32 @@ func TestCanonicalize(t *testing.T) {
 		{"und-YD", "und-YD", DeprecatedBase},
 		{"und-Qaai", "und-Zinh", DeprecatedScript},
 		{"und-Qaai", "und-Qaai", DeprecatedBase},
+		{"drh", "mn", All}, // drh -> khk -> mn
+
+		{"en-GB-u-rg-uszzzz", "en-GB-u-rg-uszzzz", Raw},
+		{"en-GB-u-rg-USZZZZ", "en-GB-u-rg-uszzzz", Raw},
+		// TODO: use different exact values for language and regional tag?
+		{"en-GB-u-rg-uszzzz-va-posix", "en-GB-u-rg-uszzzz-va-posix", Raw},
+		{"en-GB-u-rg-uszzzz-co-phonebk", "en-GB-u-co-phonebk-rg-uszzzz", Raw},
+		// Invalid region specifications are left as is.
+		{"en-GB-u-rg-usz", "en-GB-u-rg-usz", Raw},
+		{"en-GB-u-rg-usz-va-posix", "en-GB-u-rg-usz-va-posix", Raw},
+		{"en-GB-u-rg-usz-co-phonebk", "en-GB-u-co-phonebk-rg-usz", Raw},
 	}
 	for i, tt := range tests {
 		in, _ := Raw.Parse(tt.in)
 		in, _ = tt.option.Canonicalize(in)
 		if in.String() != tt.out {
 			t.Errorf("%d:%s: was %s; want %s", i, tt.in, in.String(), tt.out)
+		}
+	}
+	// Test idempotence.
+	for _, base := range Supported.BaseLanguages() {
+		tag, _ := Raw.Compose(base)
+		got, _ := All.Canonicalize(tag)
+		want, _ := All.Canonicalize(got)
+		if got != want {
+			t.Errorf("idem(%s): got %s; want %s", tag, got, want)
 		}
 	}
 }
@@ -530,126 +549,14 @@ func TestTypeForKey(t *testing.T) {
 		{"co", "en-u-co-phonebk", "phonebk"},
 		{"co", "en-u-co-phonebk-cu-aud", "phonebk"},
 		{"co", "x-foo-u-co-phonebk", ""},
+		{"va", "en-US-u-va-posix", "posix"},
+		{"rg", "en-u-rg-gbzzzz", "gbzzzz"},
 		{"nu", "en-u-co-phonebk-nu-arabic", "arabic"},
+		{"kc", "cmn-u-co-stroke", ""},
 	}
 	for _, tt := range tests {
 		if v := Make(tt.in).TypeForKey(tt.key); v != tt.out {
 			t.Errorf("%q[%q]: was %q; want %q", tt.in, tt.key, v, tt.out)
-		}
-	}
-}
-
-func TestSetTypeForKey(t *testing.T) {
-	tests := []struct {
-		key, value, in, out string
-		err                 bool
-	}{
-		// replace existing value
-		{"co", "pinyin", "en-u-co-phonebk", "en-u-co-pinyin", false},
-		{"co", "pinyin", "en-u-co-phonebk-cu-xau", "en-u-co-pinyin-cu-xau", false},
-		{"co", "pinyin", "en-u-co-phonebk-v-xx", "en-u-co-pinyin-v-xx", false},
-		{"co", "pinyin", "en-u-co-phonebk-x-x", "en-u-co-pinyin-x-x", false},
-		{"nu", "arabic", "en-u-co-phonebk-nu-vaai", "en-u-co-phonebk-nu-arabic", false},
-		// add to existing -u extension
-		{"co", "pinyin", "en-u-ca-gregory", "en-u-ca-gregory-co-pinyin", false},
-		{"co", "pinyin", "en-u-ca-gregory-nu-vaai", "en-u-ca-gregory-co-pinyin-nu-vaai", false},
-		{"co", "pinyin", "en-u-ca-gregory-v-va", "en-u-ca-gregory-co-pinyin-v-va", false},
-		{"co", "pinyin", "en-u-ca-gregory-x-a", "en-u-ca-gregory-co-pinyin-x-a", false},
-		{"ca", "gregory", "en-u-co-pinyin", "en-u-ca-gregory-co-pinyin", false},
-		// remove pair
-		{"co", "", "en-u-co-phonebk", "en", false},
-		{"co", "", "en-u-ca-gregory-co-phonebk", "en-u-ca-gregory", false},
-		{"co", "", "en-u-co-phonebk-nu-arabic", "en-u-nu-arabic", false},
-		{"co", "", "en", "en", false},
-		// add -u extension
-		{"co", "pinyin", "en", "en-u-co-pinyin", false},
-		{"co", "pinyin", "und", "und-u-co-pinyin", false},
-		{"co", "pinyin", "en-a-aaa", "en-a-aaa-u-co-pinyin", false},
-		{"co", "pinyin", "en-x-aaa", "en-u-co-pinyin-x-aaa", false},
-		{"co", "pinyin", "en-v-aa", "en-u-co-pinyin-v-aa", false},
-		{"co", "pinyin", "en-a-aaa-x-x", "en-a-aaa-u-co-pinyin-x-x", false},
-		{"co", "pinyin", "en-a-aaa-v-va", "en-a-aaa-u-co-pinyin-v-va", false},
-		// error on invalid values
-		{"co", "pinyinxxx", "en", "en", true},
-		{"co", "piny.n", "en", "en", true},
-		{"co", "pinyinxxx", "en-a-aaa", "en-a-aaa", true},
-		{"co", "pinyinxxx", "en-u-aaa", "en-u-aaa", true},
-		{"co", "pinyinxxx", "en-u-aaa-co-pinyin", "en-u-aaa-co-pinyin", true},
-		{"co", "pinyi.", "en-u-aaa-co-pinyin", "en-u-aaa-co-pinyin", true},
-		{"col", "pinyin", "en", "en", true},
-		{"co", "cu", "en", "en", true},
-		// error when setting on a private use tag
-		{"co", "phonebook", "x-foo", "x-foo", true},
-	}
-	for i, tt := range tests {
-		tag := Make(tt.in)
-		if v, err := tag.SetTypeForKey(tt.key, tt.value); v.String() != tt.out {
-			t.Errorf("%d:%q[%q]=%q: was %q; want %q", i, tt.in, tt.key, tt.value, v, tt.out)
-		} else if (err != nil) != tt.err {
-			t.Errorf("%d:%q[%q]=%q: error was %v; want %v", i, tt.in, tt.key, tt.value, err != nil, tt.err)
-		} else if val := v.TypeForKey(tt.key); err == nil && val != tt.value {
-			t.Errorf("%d:%q[%q]==%q: was %v; want %v", i, tt.out, tt.key, tt.value, val, tt.value)
-		}
-		if len(tag.String()) <= 3 {
-			// Simulate a tag for which the string has not been set.
-			tag.str, tag.pExt, tag.pVariant = "", 0, 0
-			if tag, err := tag.SetTypeForKey(tt.key, tt.value); err == nil {
-				if val := tag.TypeForKey(tt.key); err == nil && val != tt.value {
-					t.Errorf("%d:%q[%q]==%q: was %v; want %v", i, tt.out, tt.key, tt.value, val, tt.value)
-				}
-			}
-		}
-	}
-}
-
-func TestFindKeyAndType(t *testing.T) {
-	// out is either the matched type in case of a match or the original
-	// string up till the insertion point.
-	tests := []struct {
-		key     string
-		hasExt  bool
-		in, out string
-	}{
-		// Don't search past a private use extension.
-		{"co", false, "en-x-foo-u-co-pinyin", "en"},
-		{"co", false, "x-foo-u-co-pinyin", ""},
-		{"co", false, "en-s-fff-x-foo", "en-s-fff"},
-		// Insertion points in absence of -u extension.
-		{"cu", false, "en", ""}, // t.str is ""
-		{"cu", false, "en-v-va", "en"},
-		{"cu", false, "en-a-va", "en-a-va"},
-		{"cu", false, "en-a-va-v-va", "en-a-va"},
-		{"cu", false, "en-x-a", "en"},
-		// Tags with the -u extension.
-		{"co", true, "en-u-co-standard", "standard"},
-		{"co", true, "yue-u-co-pinyin", "pinyin"},
-		{"co", true, "en-u-co-abc", "abc"},
-		{"co", true, "en-u-co-abc-def", "abc-def"},
-		{"co", true, "en-u-co-abc-def-x-foo", "abc-def"},
-		{"co", true, "en-u-co-standard-nu-arab", "standard"},
-		{"co", true, "yue-u-co-pinyin-nu-arab", "pinyin"},
-		// Insertion points.
-		{"cu", true, "en-u-co-standard", "en-u-co-standard"},
-		{"cu", true, "yue-u-co-pinyin-x-foo", "yue-u-co-pinyin"},
-		{"cu", true, "en-u-co-abc", "en-u-co-abc"},
-		{"cu", true, "en-u-nu-arabic", "en-u"},
-		{"cu", true, "en-u-co-abc-def-nu-arabic", "en-u-co-abc-def"},
-	}
-	for i, tt := range tests {
-		start, end, hasExt := Make(tt.in).findTypeForKey(tt.key)
-		if start != end {
-			res := tt.in[start:end]
-			if res != tt.out {
-				t.Errorf("%d:%s: was %q; want %q", i, tt.in, res, tt.out)
-			}
-		} else {
-			if hasExt != tt.hasExt {
-				t.Errorf("%d:%s: hasExt was %v; want %v", i, tt.in, hasExt, tt.hasExt)
-				continue
-			}
-			if tt.in[:start] != tt.out {
-				t.Errorf("%d:%s: insertion point was %q; want %q", i, tt.in, tt.in[:start], tt.out)
-			}
 		}
 	}
 }
@@ -694,21 +601,21 @@ func TestParent(t *testing.T) {
 		// extra
 		{"nl-Cyrl", "und"},
 
-		// World english inherits from en-GB.
-		{"en-150", "en-GB"},
-		{"en-AU", "en-GB"},
-		{"en-BE", "en-GB"},
-		{"en-GG", "en-GB"},
-		{"en-GI", "en-GB"},
-		{"en-HK", "en-GB"},
-		{"en-IE", "en-GB"},
-		{"en-IM", "en-GB"},
-		{"en-IN", "en-GB"},
-		{"en-JE", "en-GB"},
-		{"en-MT", "en-GB"},
-		{"en-NZ", "en-GB"},
-		{"en-PK", "en-GB"},
-		{"en-SG", "en-GB"},
+		// World english inherits from en-001.
+		{"en-150", "en-001"},
+		{"en-AU", "en-001"},
+		{"en-BE", "en-001"},
+		{"en-GG", "en-001"},
+		{"en-GI", "en-001"},
+		{"en-HK", "en-001"},
+		{"en-IE", "en-001"},
+		{"en-IM", "en-001"},
+		{"en-IN", "en-001"},
+		{"en-JE", "en-001"},
+		{"en-MT", "en-001"},
+		{"en-NZ", "en-001"},
+		{"en-PK", "en-001"},
+		{"en-SG", "en-001"},
 
 		// Spanish in Latin-American countries have es-419 as parent.
 		{"es-AR", "es-419"},
@@ -742,6 +649,19 @@ func TestParent(t *testing.T) {
 		{"pt-MZ", "pt-PT"},
 		{"pt-ST", "pt-PT"},
 		{"pt-TL", "pt-PT"},
+
+		{"en-GB-u-co-phonebk-rg-uszzzz", "en-GB"},
+		{"en-GB-u-rg-uszzzz", "en-GB"},
+		{"en-US-u-va-posix", "en-US"},
+
+		// Difference between language and regional tag.
+		{"ca-ES-valencia", "ca-ES"},
+		{"ca-ES-valencia-u-rg-ptzzzz", "ca-ES"},
+		{"en-US-u-va-variant", "en-US"},
+		{"en-u-va-variant", "en"},
+		{"en-u-rg-gbzzzz", "en"},
+		{"en-US-u-rg-gbzzzz", "en-US"},
+		{"nl-US-u-rg-gbzzzz", "nl-US"},
 	}
 	for _, tt := range tests {
 		tag := Raw.MustParse(tt.in)

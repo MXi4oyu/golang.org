@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package webp implements a decoder for WEBP images.
-//
-// WEBP is defined at:
-// https://developers.google.com/speed/webp/docs/riff_container
-package webp // import "golang.org/x/image/webp"
+package webp
 
 import (
 	"bytes"
@@ -18,7 +14,6 @@ import (
 	"golang.org/x/image/riff"
 	"golang.org/x/image/vp8"
 	"golang.org/x/image/vp8l"
-	"golang.org/x/image/webp/nycbcra"
 )
 
 var errInvalidFormat = errors.New("webp: invalid format")
@@ -98,7 +93,7 @@ func decode(r io.Reader, configOnly bool) (image.Image, image.Config, error) {
 				return nil, image.Config{}, err
 			}
 			if alpha != nil {
-				return &nycbcra.Image{
+				return &image.NYCbCrA{
 					YCbCr:   *m,
 					A:       alpha,
 					AStride: alphaStride,
@@ -138,7 +133,7 @@ func decode(r io.Reader, configOnly bool) (image.Image, image.Config, error) {
 			heightMinusOne = uint32(buf[7]) | uint32(buf[8])<<8 | uint32(buf[9])<<16
 			if configOnly {
 				return nil, image.Config{
-					ColorModel: nycbcra.ColorModel,
+					ColorModel: color.NYCbCrAModel,
 					Width:      int(widthMinusOne) + 1,
 					Height:     int(heightMinusOne) + 1,
 				}, nil

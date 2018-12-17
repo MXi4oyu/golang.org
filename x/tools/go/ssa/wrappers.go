@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 package ssa
 
 // This file defines synthesis of Functions that delegate to declared
@@ -143,13 +141,9 @@ func makeWrapper(prog *Program, sel *types.Selection) *Function {
 // start is the index of the first regular parameter to use.
 //
 func createParams(fn *Function, start int) {
-	var last *Parameter
 	tparams := fn.Signature.Params()
 	for i, n := start, tparams.Len(); i < n; i++ {
-		last = fn.addParamObj(tparams.At(i))
-	}
-	if fn.Signature.Variadic() {
-		last.typ = types.NewSlice(last.typ)
+		fn.addParamObj(tparams.At(i))
 	}
 }
 

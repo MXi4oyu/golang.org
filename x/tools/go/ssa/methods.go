@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 package ssa
 
 // This file defines utilities for population of method sets.
@@ -25,14 +23,14 @@ import (
 //
 func (prog *Program) MethodValue(sel *types.Selection) *Function {
 	if sel.Kind() != types.MethodVal {
-		panic(fmt.Sprintf("Method(%s) kind != MethodVal", sel))
+		panic(fmt.Sprintf("MethodValue(%s) kind != MethodVal", sel))
 	}
 	T := sel.Recv()
 	if isInterface(T) {
 		return nil // abstract method
 	}
 	if prog.mode&LogSource != 0 {
-		defer logStack("Method %s %v", T, sel)()
+		defer logStack("MethodValue %s %v", T, sel)()
 	}
 
 	prog.methodsMu.Lock()

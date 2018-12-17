@@ -49,6 +49,11 @@ func NewProgram(fset *token.FileSet, mode BuilderMode) *Program {
 func memberFromObject(pkg *Package, obj types.Object, syntax ast.Node) {
 	name := obj.Name()
 	switch obj := obj.(type) {
+	case *types.Builtin:
+		if pkg.Pkg != types.Unsafe {
+			panic("unexpected builtin object: " + obj.String())
+		}
+
 	case *types.TypeName:
 		pkg.Members[name] = &Type{
 			object: obj,
@@ -187,7 +192,7 @@ func (prog *Program) CreatePackage(pkg *types.Package, files []*ast.File, info *
 			}
 		}
 	} else {
-		// GC-compiled binary package.
+		// GC-compiled binary package (or "unsafe")
 		// No code.
 		// No position information.
 		scope := p.Pkg.Scope()
@@ -195,9 +200,10 @@ func (prog *Program) CreatePackage(pkg *types.Package, files []*ast.File, info *
 			obj := scope.Lookup(name)
 			memberFromObject(p, obj, nil)
 			if obj, ok := obj.(*types.TypeName); ok {
-				named := obj.Type().(*types.Named)
-				for i, n := 0, named.NumMethods(); i < n; i++ {
-					memberFromObject(p, named.Method(i), nil)
+				if named, ok := obj.Type().(*types.Named); ok {
+					for i, n := 0, named.NumMethods(); i < n; i++ {
+						memberFromObject(p, named.Method(i), nil)
+					}
 				}
 			}
 		}
@@ -245,12 +251,19 @@ func (prog *Program) AllPackages() []*Package {
 	return pkgs
 }
 
-// ImportedPackage returns the importable SSA Package whose import
-// path is path, or nil if no such SSA package has been created.
+// ImportedPackage returns the importable Package whose PkgPath
+// is path, or nil if no such Package has been created.
 //
-// Not all packages are importable.  For example, no import
-// declaration can resolve to the x_test package created by 'go test'
-// or the ad-hoc main package created 'go build foo.go'.
+// A parameter to CreatePackage determines whether a package should be
+// considered importable. For example, no import declaration can resolve
+// to the ad-hoc main package created by 'go build foo.go'.
+//
+// TODO(adonovan): rethink this function and the "importable" concept;
+// most packages are importable. This function assumes that all
+// types.Package.Path values are unique within the ssa.Program, which is
+// false---yet this function remains very convenient.
+// Clients should use (*Program).Package instead where possible.
+// SSA doesn't really need a string-keyed map of packages.
 //
 func (prog *Program) ImportedPackage(path string) *Package {
 	return prog.imported[path]

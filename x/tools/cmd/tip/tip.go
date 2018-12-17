@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,7 +31,24 @@ const (
 	startTimeout = 10 * time.Minute
 )
 
+var startTime = time.Now()
+
+var (
+	autoCertDomain      = flag.String("autocert", "", "if non-empty, listen on port 443 and serve a LetsEncrypt cert for this hostname or hostnames (comma-separated)")
+	autoCertCacheBucket = flag.String("autocert-bucket", "", "if non-empty, the Google Cloud Storage bucket in which to store the LetsEncrypt cache")
+)
+
+// Hooks that are set non-nil in cert.go if the "autocert" build tag
+// is used.
+var (
+	certInit    func()
+	runHTTPS    func(http.Handler) error
+	wrapHTTPMux func(http.Handler) http.Handler
+)
+
 func main() {
+	flag.Parse()
+
 	const k = "TIP_BUILDER"
 	var b Builder
 	switch os.Getenv(k) {
@@ -42,14 +60,36 @@ func main() {
 		log.Fatalf("Unknown %v value: %q", k, os.Getenv(k))
 	}
 
+	if certInit != nil {
+		certInit()
+	}
+
 	p := &Proxy{builder: b}
 	go p.run()
-	http.Handle("/", httpsOnlyHandler{p})
-	http.HandleFunc("/_ah/health", p.serveHealthCheck)
+	mux := newServeMux(p)
 
-	log.Print("Starting up")
+	log.Printf("Starting up tip server for builder %q", os.Getenv(k))
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	errc := make(chan error, 1)
+
+	go func() {
+		var httpMux http.Handler = mux
+		if wrapHTTPMux != nil {
+			httpMux = wrapHTTPMux(httpMux)
+		}
+		errc <- http.ListenAndServe(":8080", httpMux)
+	}()
+	if *autoCertDomain != "" {
+		if runHTTPS == nil {
+			errc <- errors.New("can't use --autocert without building binary with the autocert build tag")
+		} else {
+			go func() {
+				errc <- runHTTPS(mux)
+			}()
+		}
+		log.Printf("Listening on port 443 with LetsEncrypt support on domain %q", *autoCertDomain)
+	}
+	if err := <-errc; err != nil {
 		p.stop()
 		log.Fatal(err)
 	}
@@ -60,7 +100,7 @@ func main() {
 type Proxy struct {
 	builder Builder
 
-	mu       sync.Mutex // protects the followin'
+	mu       sync.Mutex // protects following fields
 	proxy    http.Handler
 	cur      string    // signature of gorepo+toolsrepo
 	cmd      *exec.Cmd // live godoc instance, or nil for none
@@ -71,13 +111,25 @@ type Proxy struct {
 
 type Builder interface {
 	Signature(heads map[string]string) string
-	Init(dir, hostport string, heads map[string]string) (*exec.Cmd, error)
+	Init(logger *log.Logger, dir, hostport string, heads map[string]string) (*exec.Cmd, error)
 	HealthCheck(hostport string) error
 }
 
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/_tipstatus" {
 		p.serveStatus(w, r)
+		return
+	}
+	// Redirect the old beta.golang.org URL to tip.golang.org,
+	// just in case there are old links out there to
+	// beta.golang.org. (We used to run a "temporary" beta.golang.org
+	// GCE VM running godoc where "temporary" lasted two years.
+	// So it lasted so long, there are probably links to it out there.)
+	if r.Host == "beta.golang.org" {
+		u := *r.URL
+		u.Scheme = "https"
+		u.Host = "tip.golang.org"
+		http.Redirect(w, r, u.String(), http.StatusFound)
 		return
 	}
 	p.mu.Lock()
@@ -98,14 +150,17 @@ func (p *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) serveStatus(w http.ResponseWriter, r *http.Request) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	fmt.Fprintf(w, "side=%v\ncurrent=%v\nerror=%v\n", p.side, p.cur, p.err)
+	fmt.Fprintf(w, "side=%v\ncurrent=%v\nerror=%v\nuptime=%v\n", p.side, p.cur, p.err, int(time.Since(startTime).Seconds()))
 }
 
 func (p *Proxy) serveHealthCheck(w http.ResponseWriter, r *http.Request) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	// NOTE: Status 502, 503, 504 are the only status codes that signify an unhealthy app.
-	// So long as this handler returns one of those codes, this instance will not be sent any requests.
+
+	// NOTE: (App Engine only; not GKE) Status 502, 503, 504 are
+	// the only status codes that signify an unhealthy app.  So
+	// long as this handler returns one of those codes, this
+	// instance will not be sent any requests.
 	if p.proxy == nil {
 		log.Printf("Health check: not ready")
 		http.Error(w, "Not ready", http.StatusServiceUnavailable)
@@ -122,7 +177,9 @@ func (p *Proxy) serveHealthCheck(w http.ResponseWriter, r *http.Request) {
 
 // run runs in its own goroutine.
 func (p *Proxy) run() {
+	p.mu.Lock()
 	p.side = "a"
+	p.mu.Unlock()
 	for {
 		p.poll()
 		time.Sleep(30 * time.Second)
@@ -170,14 +227,20 @@ func (p *Proxy) poll() {
 	if newSide == "b" {
 		hostport = "localhost:8082"
 	}
-	cmd, err := p.builder.Init(dir, hostport, heads)
+	logger := log.New(os.Stderr, sig+": ", log.LstdFlags)
+
+	cmd, err := p.builder.Init(logger, dir, hostport, heads)
 	if err != nil {
+		logger.Printf("Init failed: %v", err)
 		err = fmt.Errorf("builder.Init: %v", err)
 	} else {
 		go func() {
 			// TODO(adg,bradfitz): be smarter about dead processes
 			if err := cmd.Wait(); err != nil {
-				log.Printf("process in %v exited: %v", dir, err)
+				logger.Printf("process in %v exited: %v (%T)", dir, err, err)
+				if ee, ok := err.(*exec.ExitError); ok {
+					logger.Printf("ProcessState.Sys() = %v", ee.ProcessState.Sys())
+				}
 			}
 		}()
 		err = waitReady(p.builder, hostport)
@@ -211,6 +274,13 @@ func (p *Proxy) poll() {
 	p.cmd = cmd
 }
 
+func newServeMux(p *Proxy) http.Handler {
+	mux := http.NewServeMux()
+	mux.Handle("/", httpsOnlyHandler{p})
+	mux.HandleFunc("/_ah/health", p.serveHealthCheck)
+	return mux
+}
+
 func waitReady(b Builder, hostport string) error {
 	var err error
 	deadline := time.Now().Add(startTimeout)
@@ -240,7 +310,7 @@ func checkout(repo, hash, path string) error {
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 			return fmt.Errorf("mkdir: %v", err)
 		}
-		if err := runErr(exec.Command("git", "clone", repo, path)); err != nil {
+		if err := runErr(exec.Command("git", "clone", "--depth", "1", repo, path)); err != nil {
 			return fmt.Errorf("clone: %v", err)
 		}
 	} else if err != nil {
@@ -266,12 +336,15 @@ func checkout(repo, hash, path string) error {
 	return nil
 }
 
+var timeoutClient = &http.Client{Timeout: 10 * time.Second}
+
 // gerritMetaMap returns the map from repo name (e.g. "go") to its
 // latest master hash.
 // The returned map is nil on any transient error.
 func gerritMetaMap() map[string]string {
-	res, err := http.Get(metaURL)
+	res, err := timeoutClient.Get(metaURL)
 	if err != nil {
+		log.Printf("Error getting Gerrit meta map: %v", err)
 		return nil
 	}
 	defer res.Body.Close()
@@ -309,7 +382,7 @@ func gerritMetaMap() map[string]string {
 }
 
 func getOK(url string) (body []byte, err error) {
-	res, err := http.Get(url)
+	res, err := timeoutClient.Get(url)
 	if err != nil {
 		return nil, err
 	}
@@ -324,22 +397,45 @@ func getOK(url string) (body []byte, err error) {
 	return body, nil
 }
 
-// httpsOnlyHandler redirects requests to "http://example.com/foo?bar"
-// to "https://example.com/foo?bar"
+// httpsOnlyHandler redirects requests to "http://example.com/foo?bar" to
+// "https://example.com/foo?bar". It should be used when the server is listening
+// for HTTP traffic behind a proxy that terminates TLS traffic, not when the Go
+// server is terminating TLS directly.
 type httpsOnlyHandler struct {
 	h http.Handler
 }
 
+// isProxiedReq checks whether the server is running behind a proxy that may be
+// terminating TLS.
+func isProxiedReq(r *http.Request) bool {
+	if _, ok := r.Header["X-Appengine-Https"]; ok {
+		return true
+	}
+	if _, ok := r.Header["X-Forwarded-Proto"]; ok {
+		return true
+	}
+	return false
+}
+
 func (h httpsOnlyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Header.Get("X-Appengine-Https") == "off" {
+	if r.Header.Get("X-Appengine-Https") == "off" || r.Header.Get("X-Forwarded-Proto") == "http" ||
+		(!isProxiedReq(r) && r.TLS == nil) {
 		r.URL.Scheme = "https"
 		r.URL.Host = r.Host
 		http.Redirect(w, r, r.URL.String(), http.StatusFound)
 		return
 	}
-	if r.Header.Get("X-Appengine-Https") == "on" {
+	if r.Header.Get("X-Appengine-Https") == "on" || r.Header.Get("X-Forwarded-Proto") == "https" ||
+		(!isProxiedReq(r) && r.TLS != nil) {
 		// Only set this header when we're actually in production.
-		w.Header().Set("Strict-Transport-Security", "max-age=31536000; preload")
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
 	}
 	h.h.ServeHTTP(w, r)
+}
+
+type toLoggerWriter struct{ logger *log.Logger }
+
+func (w toLoggerWriter) Write(p []byte) (int, error) {
+	w.logger.Printf("%s", p)
+	return len(p), nil
 }
