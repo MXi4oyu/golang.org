@@ -9,9 +9,18 @@ package socket // import "golang.org/x/net/internal/socket"
 import (
 	"errors"
 	"net"
+<<<<<<< HEAD
 	"unsafe"
 )
 
+=======
+	"runtime"
+	"unsafe"
+)
+
+var errNotImplemented = errors.New("not implemented on " + runtime.GOOS + "/" + runtime.GOARCH)
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // An Option represents a sticky socket option.
 type Option struct {
 	Level int // level

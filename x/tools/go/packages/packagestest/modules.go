@@ -110,7 +110,11 @@ func (modules) Finalize(exported *Exported) error {
 	exported.Config.Env = append(exported.Config.Env,
 		"GO111MODULE=on",
 		"GOPATH="+filepath.Join(exported.temp, "modcache"),
+<<<<<<< HEAD
 		"GOPROXY=file://"+filepath.ToSlash(proxyDir))
+=======
+		"GOPROXY="+proxyDirToURL(proxyDir))
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	// Run go mod download to recreate the mod cache dir with all the extra
 	// stuff in cache. All the files created by Export should be recreated.
@@ -170,6 +174,12 @@ func writeModuleProxy(dir, module string, files map[string]string) error {
 	if err := z.Close(); err != nil {
 		return err
 	}
+<<<<<<< HEAD
+=======
+	if err := f.Close(); err != nil {
+		return err
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	return nil
 }

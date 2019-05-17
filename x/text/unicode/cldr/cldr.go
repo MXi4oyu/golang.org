@@ -96,7 +96,11 @@ func (cldr *CLDR) RawLDML(loc string) *LDML {
 // LDML returns the fully resolved LDML XML for loc, which must be one of
 // the strings returned by Locales.
 //
+<<<<<<< HEAD:x/text/unicode/cldr/cldr.go
 // Deprecated: use RawLDML and implement inheritance manually or using the
+=======
+// Deprecated: Use RawLDML and implement inheritance manually or using the
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/text/unicode/cldr/cldr.go
 // internal cldrtree package.
 // Inheritance has changed quite a bit since the onset of this package and in
 // practice data often represented in a way where knowledge of how it was

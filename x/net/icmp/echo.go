@@ -4,7 +4,13 @@
 
 package icmp
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+
+	"golang.org/x/net/internal/iana"
+	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
+)
 
 // An Echo represents an ICMP echo request or reply message body.
 type Echo struct {
@@ -59,15 +65,35 @@ func (p *ExtendedEchoRequest) Len(proto int) int {
 		return 0
 	}
 	l, _ := multipartMessageBodyDataLen(proto, false, nil, p.Extensions)
+<<<<<<< HEAD
 	return 4 + l
+=======
+	return l
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
 func (p *ExtendedEchoRequest) Marshal(proto int) ([]byte, error) {
+<<<<<<< HEAD
+=======
+	var typ Type
+	switch proto {
+	case iana.ProtocolICMP:
+		typ = ipv4.ICMPTypeExtendedEchoRequest
+	case iana.ProtocolIPv6ICMP:
+		typ = ipv6.ICMPTypeExtendedEchoRequest
+	default:
+		return nil, errInvalidProtocol
+	}
+	if !validExtensions(typ, p.Extensions) {
+		return nil, errInvalidExtension
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	b, err := marshalMultipartMessageBody(proto, false, nil, p.Extensions)
 	if err != nil {
 		return nil, err
 	}
+<<<<<<< HEAD
 	bb := make([]byte, 4)
 	binary.BigEndian.PutUint16(bb[:2], uint16(p.ID))
 	bb[2] = byte(p.Seq)
@@ -76,12 +102,24 @@ func (p *ExtendedEchoRequest) Marshal(proto int) ([]byte, error) {
 	}
 	bb = append(bb, b...)
 	return bb, nil
+=======
+	binary.BigEndian.PutUint16(b[:2], uint16(p.ID))
+	b[2] = byte(p.Seq)
+	if p.Local {
+		b[3] |= 0x01
+	}
+	return b, nil
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // parseExtendedEchoRequest parses b as an ICMP extended echo request
 // message body.
 func parseExtendedEchoRequest(proto int, typ Type, b []byte) (MessageBody, error) {
+<<<<<<< HEAD
 	if len(b) < 4+4 {
+=======
+	if len(b) < 4 {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		return nil, errMessageTooShort
 	}
 	p := &ExtendedEchoRequest{ID: int(binary.BigEndian.Uint16(b[:2])), Seq: int(b[2])}
@@ -89,7 +127,11 @@ func parseExtendedEchoRequest(proto int, typ Type, b []byte) (MessageBody, error
 		p.Local = true
 	}
 	var err error
+<<<<<<< HEAD
 	_, p.Extensions, err = parseMultipartMessageBody(proto, typ, b[4:])
+=======
+	_, p.Extensions, err = parseMultipartMessageBody(proto, typ, b)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	if err != nil {
 		return nil, err
 	}

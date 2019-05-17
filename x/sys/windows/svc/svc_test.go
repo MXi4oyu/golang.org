@@ -121,6 +121,7 @@ func TestExample(t *testing.T) {
 		t.Fatalf("Delete failed: %s", err)
 	}
 
+<<<<<<< HEAD
 	cmd := `Get-Eventlog -LogName Application -Newest 100` +
 		` | Where Source -eq "myservice"` +
 		` | Select -first 10` +
@@ -130,6 +131,16 @@ func TestExample(t *testing.T) {
 		t.Fatalf("powershell failed: %v\n%v", err, string(out))
 	}
 	if want := strings.Join(append([]string{name}, args...), "-"); !strings.Contains(string(out), want) {
+=======
+	out, err := exec.Command("wevtutil.exe", "qe", "Application", "/q:*[System[Provider[@Name='myservice']]]", "/rd:true", "/c:10").CombinedOutput()
+	if err != nil {
+		t.Fatalf("wevtutil failed: %v\n%v", err, string(out))
+	}
+	want := strings.Join(append([]string{name}, args...), "-")
+	// Test context passing (see servicemain in sys_386.s and sys_amd64.s).
+	want += "-123456"
+	if !strings.Contains(string(out), want) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		t.Errorf("%q string does not contain %q", string(out), want)
 	}
 }

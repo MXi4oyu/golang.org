@@ -89,7 +89,12 @@ The presentation mode of web pages served by godoc can be controlled with the
 
 	all	show documentation for all declarations, not just the exported ones
 	methods	show all embedded methods, not just those of unexported anonymous fields
+<<<<<<< HEAD
 	src	show the original source code rather then the extracted documentation
+=======
+	src	show the original source code rather than the extracted documentation
+	flat	present flat (not indented) directory listings using full paths
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 For instance, https://golang.org/pkg/math/big/?m=all shows the documentation
 for all (not just the exported) declarations of package big.

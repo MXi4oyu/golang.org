@@ -5,6 +5,14 @@ body {
 	line-height: 1.3;
 	text-align: center;
 	color: #222;
+<<<<<<< HEAD
+=======
+}
+textarea {
+	/* Inherit text color from body avoiding illegible text in the case where the
+ 	* user has inverted the browsers custom text and background colors. */
+	color: inherit;
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 pre,
 code {
@@ -53,12 +61,21 @@ pre .ln {
 	column-gap: 1.25rem;
 	column-fill: auto;
 	column-width: 14rem;
+<<<<<<< HEAD
 }
 
 .search-nav .indent {
 	margin-left: 1.25rem;
 }
 
+=======
+}
+
+.search-nav .indent {
+	margin-left: 1.25rem;
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 a,
 .exampleHeading .text,
 .expandAll {
@@ -308,11 +325,19 @@ div#menu > a,
 ::-webkit-input-placeholder {
 	color: #7f7f7f;
 	opacity: 1;
+<<<<<<< HEAD
 }
 ::placeholder {
 	color: #7f7f7f;
 	opacity: 1;
 }
+=======
+}
+::placeholder {
+	color: #7f7f7f;
+	opacity: 1;
+}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 #menu .search-box {
 	display: inline-flex;
 	width: 8.75rem;

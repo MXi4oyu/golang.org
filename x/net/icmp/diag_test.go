@@ -6,6 +6,10 @@ package icmp_test
 
 import (
 	"errors"
+<<<<<<< HEAD
+=======
+	"flag"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"fmt"
 	"net"
 	"os"
@@ -16,11 +20,21 @@ import (
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/internal/iana"
+<<<<<<< HEAD
 	"golang.org/x/net/internal/nettest"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
 )
 
+=======
+	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
+	"golang.org/x/net/nettest"
+)
+
+var testDiag = flag.Bool("diag", false, "whether to test ICMP message exchange with external network")
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 type diagTest struct {
 	network, address string
 	protocol         int
@@ -28,11 +42,16 @@ type diagTest struct {
 }
 
 func TestDiag(t *testing.T) {
+<<<<<<< HEAD
 	if testing.Short() {
+=======
+	if !*testDiag {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		t.Skip("avoid external network")
 	}
 
 	t.Run("Ping/NonPrivileged", func(t *testing.T) {
+<<<<<<< HEAD
 		switch runtime.GOOS {
 		case "darwin":
 		case "linux":
@@ -40,6 +59,10 @@ func TestDiag(t *testing.T) {
 		default:
 			t.Logf("not supported on %s", runtime.GOOS)
 			return
+=======
+		if m, ok := supportsNonPrivilegedICMP(); !ok {
+			t.Skip(m)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 		for i, dt := range []diagTest{
 			{
@@ -70,8 +93,13 @@ func TestDiag(t *testing.T) {
 		}
 	})
 	t.Run("Ping/Privileged", func(t *testing.T) {
+<<<<<<< HEAD
 		if m, ok := nettest.SupportsRawIPSocket(); !ok {
 			t.Skip(m)
+=======
+		if !nettest.SupportsRawSocket() {
+			t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 		for i, dt := range []diagTest{
 			{
@@ -102,8 +130,13 @@ func TestDiag(t *testing.T) {
 		}
 	})
 	t.Run("Probe/Privileged", func(t *testing.T) {
+<<<<<<< HEAD
 		if m, ok := nettest.SupportsRawIPSocket(); !ok {
 			t.Skip(m)
+=======
+		if !nettest.SupportsRawSocket() {
+			t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 		for i, dt := range []diagTest{
 			{
@@ -244,12 +277,17 @@ func TestConcurrentNonPrivilegedListenPacket(t *testing.T) {
 	if testing.Short() {
 		t.Skip("avoid external network")
 	}
+<<<<<<< HEAD
 	switch runtime.GOOS {
 	case "darwin":
 	case "linux":
 		t.Log("you may need to adjust the net.ipv4.ping_group_range kernel state")
 	default:
 		t.Skipf("not supported on %s", runtime.GOOS)
+=======
+	if m, ok := supportsNonPrivilegedICMP(); !ok {
+		t.Skip(m)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 
 	network, address := "udp4", "127.0.0.1"
@@ -272,3 +310,37 @@ func TestConcurrentNonPrivilegedListenPacket(t *testing.T) {
 	}
 	wg.Wait()
 }
+<<<<<<< HEAD
+=======
+
+var (
+	nonPrivOnce sync.Once
+	nonPrivMsg  string
+	nonPrivICMP bool
+)
+
+func supportsNonPrivilegedICMP() (string, bool) {
+	nonPrivOnce.Do(func() {
+		switch runtime.GOOS {
+		case "darwin":
+			nonPrivICMP = true
+		case "linux":
+			for _, t := range []struct{ network, address string }{
+				{"udp4", "127.0.0.1"},
+				{"udp6", "::1"},
+			} {
+				c, err := icmp.ListenPacket(t.network, t.address)
+				if err != nil {
+					nonPrivMsg = "you may need to adjust the net.ipv4.ping_group_range kernel state"
+					return
+				}
+				c.Close()
+			}
+			nonPrivICMP = true
+		default:
+			nonPrivMsg = "not supported on " + runtime.GOOS
+		}
+	})
+	return nonPrivMsg, nonPrivICMP
+}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

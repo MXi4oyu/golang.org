@@ -236,7 +236,11 @@ func TestGuru(t *testing.T) {
 	}
 
 	for _, filename := range []string{
+<<<<<<< HEAD
 		"testdata/src/alias/alias.go", // iff guru.HasAlias (go1.9)
+=======
+		"testdata/src/alias/alias.go",
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"testdata/src/calls/main.go",
 		"testdata/src/describe/main.go",
 		"testdata/src/describe/main19.go", // iff go1.9
@@ -273,6 +277,7 @@ func TestGuru(t *testing.T) {
 				// wording for a "no such file or directory" error.
 				t.Skip()
 			}
+<<<<<<< HEAD
 			if filename == "testdata/src/alias/alias.go" && !guru.HasAlias {
 				t.Skip()
 			}
@@ -282,6 +287,8 @@ func TestGuru(t *testing.T) {
 				t.Skip()
 			}
 
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			json := strings.Contains(filename, "-json/")
 			queries := parseQueries(t, filename)
 			golden := filename + "lden"
@@ -322,6 +329,7 @@ func TestGuru(t *testing.T) {
 				}
 			}
 		})
+<<<<<<< HEAD
 	}
 }
 
@@ -330,6 +338,8 @@ func contains(haystack []string, needle string) bool {
 		if needle == x {
 			return true
 		}
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 	return false
 }

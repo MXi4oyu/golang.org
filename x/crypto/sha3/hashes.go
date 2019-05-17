@@ -57,6 +57,15 @@ func New512() hash.Hash {
 // Only use this function if you require compatibility with an existing cryptosystem
 // that uses non-standard padding. All other users should use New256 instead.
 func NewLegacyKeccak256() hash.Hash { return &state{rate: 136, outputLen: 32, dsbyte: 0x01} }
+<<<<<<< HEAD
+=======
+
+// NewLegacyKeccak512 creates a new Keccak-512 hash.
+//
+// Only use this function if you require compatibility with an existing cryptosystem
+// that uses non-standard padding. All other users should use New512 instead.
+func NewLegacyKeccak512() hash.Hash { return &state{rate: 72, outputLen: 64, dsbyte: 0x01} }
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 // Sum224 returns the SHA3-224 digest of the data.
 func Sum224(data []byte) (digest [28]byte) {

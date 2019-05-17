@@ -9,8 +9,20 @@ type S1 struct { //@S1
 }
 
 type S2 struct { //@S2
+<<<<<<< HEAD
 	F1 string //@mark(S2F1, "F1")
 	F2 int    //@mark(S2F2, "F2")
+=======
+	F1   string //@mark(S2F1, "F1")
+	F2   int    //@mark(S2F2, "F2")
+	*a.A        //@godef("A", A)
+}
+
+type S3 struct {
+	F1 struct {
+		a.A //@godef("A", A)
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 func Bar() {

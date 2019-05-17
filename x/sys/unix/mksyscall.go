@@ -88,15 +88,29 @@ func parseParam(p string) Param {
 func main() {
 	// Get the OS and architecture (using GOARCH_TARGET if it exists)
 	goos := os.Getenv("GOOS")
+<<<<<<< HEAD
+=======
+	if goos == "" {
+		fmt.Fprintln(os.Stderr, "GOOS not defined in environment")
+		os.Exit(1)
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	goarch := os.Getenv("GOARCH_TARGET")
 	if goarch == "" {
 		goarch = os.Getenv("GOARCH")
 	}
 
+<<<<<<< HEAD
 	// Check that we are using the new build system if we should
 	if goos == "linux" && goarch != "sparc64" {
 		if os.Getenv("GOLANG_SYS_BUILD") != "docker" {
 			fmt.Fprintf(os.Stderr, "In the new build system, mksyscall should not be called directly.\n")
+=======
+	// Check that we are using the Docker-based build system if we should
+	if goos == "linux" {
+		if os.Getenv("GOLANG_SYS_BUILD") != "docker" {
+			fmt.Fprintf(os.Stderr, "In the Docker-based build system, mksyscall should not be called directly.\n")
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			fmt.Fprintf(os.Stderr, "See README.md\n")
 			os.Exit(1)
 		}
@@ -116,6 +130,15 @@ func main() {
 		endianness = "little-endian"
 	}
 
+<<<<<<< HEAD
+=======
+	libc := false
+	if goos == "darwin" && strings.Contains(buildTags(), ",go1.12") {
+		libc = true
+	}
+	trampolines := map[string]bool{}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	text := ""
 	for _, path := range flag.Args() {
 		file, err := os.Open(path)
@@ -143,6 +166,14 @@ func main() {
 			}
 			funct, inps, outps, sysname := f[2], f[3], f[4], f[5]
 
+<<<<<<< HEAD
+=======
+			// ClockGettime doesn't have a syscall number on Darwin, only generate libc wrappers.
+			if goos == "darwin" && !libc && funct == "ClockGettime" {
+				continue
+			}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			// Split argument lists on comma.
 			in := parseParamList(inps)
 			out := parseParamList(outps)
@@ -218,7 +249,11 @@ func main() {
 					} else {
 						args = append(args, fmt.Sprintf("uintptr(%s)", p.Name))
 					}
+<<<<<<< HEAD
 				} else if p.Type == "int64" && endianness != "" {
+=======
+				} else if (p.Type == "int64" || p.Type == "uint64") && endianness != "" {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 					if len(args)%2 == 1 && *arm {
 						// arm abi specifies 64-bit argument uses
 						// (even, odd) pair
@@ -272,6 +307,23 @@ func main() {
 				sysname = strings.ToUpper(sysname)
 			}
 
+<<<<<<< HEAD
+=======
+			var libcFn string
+			if libc {
+				asm = "syscall_" + strings.ToLower(asm[:1]) + asm[1:] // internal syscall call
+				sysname = strings.TrimPrefix(sysname, "SYS_")         // remove SYS_
+				sysname = strings.ToLower(sysname)                    // lowercase
+				if sysname == "getdirentries64" {
+					// Special case - libSystem name and
+					// raw syscall name don't match.
+					sysname = "__getdirentries64"
+				}
+				libcFn = sysname
+				sysname = "funcPC(libc_" + sysname + "_trampoline)"
+			}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			// Actual call.
 			arglist := strings.Join(args, ", ")
 			call := fmt.Sprintf("%s(%s, %s)", asm, sysname, arglist)
@@ -339,6 +391,20 @@ func main() {
 			text += "\treturn\n"
 			text += "}\n\n"
 
+<<<<<<< HEAD
+=======
+			if libc && !trampolines[libcFn] {
+				// some system calls share a trampoline, like read and readlen.
+				trampolines[libcFn] = true
+				// Declare assembly trampoline.
+				text += fmt.Sprintf("func libc_%s_trampoline()\n", libcFn)
+				// Assembly trampoline calls the libc_* function, which this magic
+				// redirects to use the function from libSystem.
+				text += fmt.Sprintf("//go:linkname libc_%s libc_%s\n", libcFn, libcFn)
+				text += fmt.Sprintf("//go:cgo_import_dynamic libc_%s %s \"/usr/lib/libSystem.B.dylib\"\n", libcFn, libcFn)
+				text += "\n"
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 		if err := s.Err(); err != nil {
 			fmt.Fprintf(os.Stderr, err.Error())

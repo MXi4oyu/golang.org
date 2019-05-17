@@ -177,7 +177,11 @@ func (s *nodeStack) index(n *Node) int {
 // contains returns whether a is within s.
 func (s *nodeStack) contains(a atom.Atom) bool {
 	for _, n := range *s {
+<<<<<<< HEAD
 		if n.DataAtom == a {
+=======
+		if n.DataAtom == a && n.Namespace == "" {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			return true
 		}
 	}

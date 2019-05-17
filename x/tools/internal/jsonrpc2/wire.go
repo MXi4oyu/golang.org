@@ -28,6 +28,13 @@ const (
 	CodeInvalidParams = -32602
 	// CodeInternalError is not currently returned but defined for completeness.
 	CodeInternalError = -32603
+<<<<<<< HEAD
+=======
+
+	//CodeServerOverloaded is returned when a message was refused due to a
+	//server being temporarily unable to accept any new messages.
+	CodeServerOverloaded = -32000
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 // Request is sent to a server to represent a Call or Notify operaton.

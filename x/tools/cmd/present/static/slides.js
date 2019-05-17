@@ -442,7 +442,11 @@ function handleBodyKeyDown(event) {
 };
 
 function scaleSmallViewports() {
+<<<<<<< HEAD
   var el = document.querySelector('.slides');
+=======
+  var el = document.querySelector('section.slides');
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
   var transform = '';
   var sWidthPx = 1250;
   var sHeightPx = 750;
@@ -468,6 +472,23 @@ function addEventListeners() {
       scaleSmallViewports();
     }, 50);
   });
+<<<<<<< HEAD
+=======
+
+  // Force reset transform property of section.slides when printing page.
+  // Use both onbeforeprint and matchMedia for compatibility with different browsers.
+  var beforePrint = function() {
+    var el = document.querySelector('section.slides');
+    el.style.transform = '';
+  };
+  window.onbeforeprint = beforePrint;
+  if (window.matchMedia) {
+    var mediaQueryList = window.matchMedia('print');
+    mediaQueryList.addListener(function(mql) {
+      if (mql.matches) beforePrint();
+    });
+  }
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 /* Initialization */

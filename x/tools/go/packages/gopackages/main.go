@@ -9,20 +9,29 @@
 package main
 
 import (
+<<<<<<< HEAD
+=======
+	"context"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"encoding/json"
 	"flag"
 	"fmt"
 	"go/types"
+<<<<<<< HEAD
 	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
 	"runtime/trace"
+=======
+	"os"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"sort"
 	"strings"
 
 	"golang.org/x/tools/go/packages"
 	"golang.org/x/tools/go/types/typeutil"
+<<<<<<< HEAD
 )
 
 // flags
@@ -108,17 +117,73 @@ func main() {
 			}
 			f.Close()
 		}()
+=======
+	"golang.org/x/tools/internal/tool"
+)
+
+func main() {
+	tool.Main(context.Background(), &application{Mode: "imports"}, os.Args[1:])
+}
+
+type application struct {
+	// Embed the basic profiling flags supported by the tool package
+	tool.Profile
+
+	Deps       bool            `flag:"deps" help:"show dependencies too"`
+	Test       bool            `flag:"test" help:"include any tests implied by the patterns"`
+	Mode       string          `flag:"mode" help:"mode (one of files, imports, types, syntax, allsyntax)"`
+	Private    bool            `flag:"private" help:"show non-exported declarations too"`
+	PrintJSON  bool            `flag:"json" help:"print package in JSON form"`
+	BuildFlags stringListValue `flag:"buildflag" help:"pass argument to underlying build system (may be repeated)"`
+}
+
+// Name implements tool.Application returning the binary name.
+func (app *application) Name() string { return "gopackages" }
+
+// Usage implements tool.Application returning empty extra argument usage.
+func (app *application) Usage() string { return "package..." }
+
+// ShortHelp implements tool.Application returning the main binary help.
+func (app *application) ShortHelp() string {
+	return "gopackages loads, parses, type-checks, and prints one or more Go packages."
+}
+
+// DetailedHelp implements tool.Application returning the main binary help.
+func (app *application) DetailedHelp(f *flag.FlagSet) {
+	fmt.Fprint(f.Output(), `
+Packages are specified using the notation of "go list",
+or other underlying build system.
+
+Flags:
+`)
+	f.PrintDefaults()
+}
+
+// Run takes the args after flag processing and performs the specified query.
+func (app *application) Run(ctx context.Context, args ...string) error {
+	if len(args) == 0 {
+		return tool.CommandLineErrorf("not enough arguments")
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 
 	// Load, parse, and type-check the packages named on the command line.
 	cfg := &packages.Config{
 		Mode:       packages.LoadSyntax,
+<<<<<<< HEAD
 		Tests:      *testFlag,
 		BuildFlags: buildFlags,
 	}
 
 	// -mode flag
 	switch strings.ToLower(*mode) {
+=======
+		Tests:      app.Test,
+		BuildFlags: app.BuildFlags,
+	}
+
+	// -mode flag
+	switch strings.ToLower(app.Mode) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	case "files":
 		cfg.Mode = packages.LoadFiles
 	case "imports":
@@ -130,6 +195,7 @@ func main() {
 	case "allsyntax":
 		cfg.Mode = packages.LoadAllSyntax
 	default:
+<<<<<<< HEAD
 		log.Fatalf("invalid mode: %s", *mode)
 	}
 
@@ -140,6 +206,18 @@ func main() {
 
 	// -deps: print dependencies too.
 	if *depsFlag {
+=======
+		return tool.CommandLineErrorf("invalid mode: %s", app.Mode)
+	}
+
+	lpkgs, err := packages.Load(cfg, args...)
+	if err != nil {
+		return err
+	}
+
+	// -deps: print dependencies too.
+	if app.Deps {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		// We can't use packages.All because
 		// we need an ordered traversal.
 		var all []*packages.Package // postorder
@@ -169,12 +247,22 @@ func main() {
 	}
 
 	for _, lpkg := range lpkgs {
+<<<<<<< HEAD
 		print(lpkg)
 	}
 }
 
 func print(lpkg *packages.Package) {
 	if *printJSON {
+=======
+		app.print(lpkg)
+	}
+	return nil
+}
+
+func (app *application) print(lpkg *packages.Package) {
+	if app.PrintJSON {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		data, _ := json.MarshalIndent(lpkg, "", "\t")
 		os.Stdout.Write(data)
 		return
@@ -237,14 +325,22 @@ func print(lpkg *packages.Package) {
 		scope := lpkg.Types.Scope()
 		for _, name := range scope.Names() {
 			obj := scope.Lookup(name)
+<<<<<<< HEAD
 			if !obj.Exported() && !*private {
+=======
+			if !obj.Exported() && !app.Private {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				continue // skip unexported names
 			}
 
 			fmt.Printf("\t%s\n", types.ObjectString(obj, qual))
 			if _, ok := obj.(*types.TypeName); ok {
 				for _, meth := range typeutil.IntuitiveMethodSet(obj.Type(), nil) {
+<<<<<<< HEAD
 					if !meth.Obj().Exported() && !*private {
+=======
+					if !meth.Obj().Exported() && !app.Private {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 						continue // skip unexported names
 					}
 					fmt.Printf("\t%s\n", types.SelectionString(meth, qual))

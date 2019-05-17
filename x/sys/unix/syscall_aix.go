@@ -227,7 +227,11 @@ func anyToSockaddr(fd int, rsa *RawSockaddrAny) (Sockaddr, error) {
 
 		// Some versions of AIX have a bug in getsockname (see IV78655).
 		// We can't rely on sa.Len being set correctly.
+<<<<<<< HEAD
 		n := SizeofSockaddrUnix - 3 // substract leading Family, Len, terminating NUL.
+=======
+		n := SizeofSockaddrUnix - 3 // subtract leading Family, Len, terminating NUL.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		for i := 0; i < n; i++ {
 			if pp.Path[i] == 0 {
 				n = i
@@ -268,6 +272,16 @@ func Gettimeofday(tv *Timeval) (err error) {
 	return
 }
 
+<<<<<<< HEAD
+=======
+func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
+	if raceenabled {
+		raceReleaseMerge(unsafe.Pointer(&ioSync))
+	}
+	return sendfile(outfd, infd, offset, count)
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // TODO
 func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
 	return -1, ENOSYS
@@ -437,8 +451,11 @@ func IoctlGetTermios(fd int, req uint) (*Termios, error) {
 //sysnb	Times(tms *Tms) (ticks uintptr, err error)
 //sysnb	Umask(mask int) (oldmask int)
 //sysnb	Uname(buf *Utsname) (err error)
+<<<<<<< HEAD
 //TODO umount
 // //sys	Unmount(target string, flags int) (err error) = umount
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //sys   Unlink(path string) (err error)
 //sys   Unlinkat(dirfd int, path string, flags int) (err error)
 //sys	Ustat(dev int, ubuf *Ustat_t) (err error)
@@ -463,8 +480,12 @@ func IoctlGetTermios(fd int, req uint) (*Termios, error) {
 //sys	Pause() (err error)
 //sys	Pread(fd int, p []byte, offset int64) (n int, err error) = pread64
 //sys	Pwrite(fd int, p []byte, offset int64) (n int, err error) = pwrite64
+<<<<<<< HEAD
 //TODO Select
 // //sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err error)
+=======
+//sys	Select(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timeval) (n int, err error)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //sys	Pselect(nfd int, r *FdSet, w *FdSet, e *FdSet, timeout *Timespec, sigmask *Sigset_t) (n int, err error)
 //sysnb	Setregid(rgid int, egid int) (err error)
 //sysnb	Setreuid(ruid int, euid int) (err error)
@@ -486,8 +507,15 @@ func IoctlGetTermios(fd int, req uint) (*Termios, error) {
 //sysnb	getsockname(fd int, rsa *RawSockaddrAny, addrlen *_Socklen) (err error)
 //sys	recvfrom(fd int, p []byte, flags int, from *RawSockaddrAny, fromlen *_Socklen) (n int, err error)
 //sys	sendto(s int, buf []byte, flags int, to unsafe.Pointer, addrlen _Socklen) (err error)
+<<<<<<< HEAD
 //sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error)
 //sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error)
+=======
+
+// In order to use msghdr structure with Control, Controllen, nrecvmsg and nsendmsg must be used.
+//sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error) = nrecvmsg
+//sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error) = nsendmsg
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 //sys	munmap(addr uintptr, length uintptr) (err error)
 
@@ -538,3 +566,17 @@ func Poll(fds []PollFd, timeout int) (n int, err error) {
 //sys	gettimeofday(tv *Timeval, tzp *Timezone) (err error)
 //sysnb	Time(t *Time_t) (tt Time_t, err error)
 //sys	Utime(path string, buf *Utimbuf) (err error)
+<<<<<<< HEAD
+=======
+
+//sys	Getsystemcfg(label int) (n uint64)
+
+//sys	umount(target string) (err error)
+func Unmount(target string, flags int) (err error) {
+	if flags != 0 {
+		// AIX doesn't have any flags for umount.
+		return ENOSYS
+	}
+	return umount(target)
+}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

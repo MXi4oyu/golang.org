@@ -261,6 +261,7 @@ func Uname(uname *Utsname) error {
 				uname.Version[i] = ' '
 			}
 		}
+<<<<<<< HEAD
 	}
 
 	mib = []_C_int{CTL_HW, HW_MACHINE}
@@ -269,6 +270,16 @@ func Uname(uname *Utsname) error {
 		return err
 	}
 
+=======
+	}
+
+	mib = []_C_int{CTL_HW, HW_MACHINE}
+	n = unsafe.Sizeof(uname.Machine)
+	if err := sysctl(mib, &uname.Machine[0], &n, nil, 0); err != nil {
+		return err
+	}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return nil
 }
 
@@ -498,6 +509,16 @@ func convertFromDirents11(buf []byte, old []byte) int {
 	}
 
 	return dstPos
+<<<<<<< HEAD
+=======
+}
+
+func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
+	if raceenabled {
+		raceReleaseMerge(unsafe.Pointer(&ioSync))
+	}
+	return sendfile(outfd, infd, offset, count)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 /*

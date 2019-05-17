@@ -109,7 +109,11 @@ func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 		},
 	}
 
+<<<<<<< HEAD
 	for i, pt := range predeclared {
+=======
+	for i, pt := range predeclared() {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		p.typCache[uint64(i)] = pt
 	}
 
@@ -142,8 +146,17 @@ func IImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 		p.pkgIndex[pkg] = nameIndex
 		pkgList[i] = pkg
 	}
+<<<<<<< HEAD
 
 	localpkg := pkgList[0]
+=======
+	var localpkg *types.Package
+	for _, pkg := range pkgList {
+		if pkg.Path() == path {
+			localpkg = pkg
+		}
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	names := make([]string, 0, len(p.pkgIndex[localpkg]))
 	for name := range p.pkgIndex[localpkg] {
@@ -330,6 +343,13 @@ func (r *importReader) value() (typ types.Type, val constant.Value) {
 		val = constant.BinaryOp(re, token.ADD, constant.MakeImag(im))
 
 	default:
+<<<<<<< HEAD
+=======
+		if b.Kind() == types.Invalid {
+			val = constant.MakeUnknown()
+			return
+		}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		errorf("unexpected type %v", typ) // panics
 		panic("unreachable")
 	}

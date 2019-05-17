@@ -14,8 +14,11 @@
 //				(idea is if you say import "compress/zlib", you go to
 //				http://godoc/pkg/compress/zlib)
 //
+<<<<<<< HEAD
 
 // +build !golangorg
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 package main
 
@@ -94,7 +97,11 @@ type httpResponseRecorder struct {
 }
 
 func (w *httpResponseRecorder) Header() http.Header         { return w.header }
+<<<<<<< HEAD
 func (w *httpResponseRecorder) Write(b []byte) (int, error) { return len(b), nil }
+=======
+func (w *httpResponseRecorder) Write(b []byte) (int, error) { return w.body.Write(b) }
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func (w *httpResponseRecorder) WriteHeader(code int)        { w.code = code }
 
 func usage() {
@@ -163,6 +170,7 @@ func main() {
 
 	playEnabled = *showPlayground
 
+<<<<<<< HEAD
 	// Check usage: server and no args.
 	if (*httpAddr != "" || *urlFlag != "") && (flag.NArg() > 0) {
 		fmt.Fprintln(os.Stderr, "Unexpected arguments.")
@@ -172,12 +180,27 @@ func main() {
 	// Check usage: command line args or index creation mode.
 	if (*httpAddr != "" || *urlFlag != "") != (flag.NArg() == 0) && !*writeIndex {
 		fmt.Fprintln(os.Stderr, "missing args.")
+=======
+	// Check usage.
+	if flag.NArg() > 0 {
+		fmt.Fprintln(os.Stderr, `Unexpected arguments. Use "go doc" for command-line help output instead. For example, "go doc fmt.Printf".`)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
+		usage()
+	}
+	if *httpAddr == "" && *urlFlag == "" && !*writeIndex {
+		fmt.Fprintln(os.Stderr, "At least one of -http, -url, or -write_index must be set to a non-zero value.")
 		usage()
 	}
 
 	// Set the resolved goroot.
 	vfs.GOROOT = *goroot
 
+<<<<<<< HEAD
+	// Set the resolved goroot.
+	vfs.GOROOT = *goroot
+
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	fsGate := make(chan bool, 20)
 
 	// Determine file system to use.
@@ -230,13 +253,20 @@ func main() {
 	corpus.IndexDirectory = indexDirectoryDefault
 	corpus.IndexThrottle = *indexThrottle
 	corpus.IndexInterval = *indexInterval
-	if *writeIndex {
+	if *writeIndex || *urlFlag != "" {
 		corpus.IndexThrottle = 1.0
 		corpus.IndexEnabled = true
 		initCorpus(corpus)
 	} else {
 		go initCorpus(corpus)
 	}
+<<<<<<< HEAD
+=======
+
+	// Initialize the version info before readTemplates, which saves
+	// the map value in a method value.
+	corpus.InitVersionInfo()
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	// Initialize the version info before readTemplates, which saves
 	// the map value in a method value.

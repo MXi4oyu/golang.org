@@ -1,3 +1,11 @@
+<<<<<<< HEAD
+=======
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package packagesdriver fetches type sizes for go/packages and go/analysis.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 package packagesdriver
 
 import (
@@ -25,18 +33,33 @@ func GetSizes(ctx context.Context, buildFlags, env []string, dir string, usesExp
 			tool = val
 		}
 	}
+<<<<<<< HEAD
 	if tool != "" && tool == "off" {
 		return GetSizesGolist(ctx, buildFlags, env, dir, usesExportData)
 	}
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	if tool == "" {
 		var err error
 		tool, err = exec.LookPath("gopackagesdriver")
 		if err != nil {
+<<<<<<< HEAD
 			return nil, nil
 		}
 	}
 
+=======
+			// We did not find the driver, so use "go list".
+			tool = "off"
+		}
+	}
+
+	if tool == "off" {
+		return GetSizesGolist(ctx, buildFlags, env, dir, usesExportData)
+	}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	req, err := json.Marshal(struct {
 		Command    string   `json:"command"`
 		Env        []string `json:"env"`
@@ -79,6 +102,12 @@ func GetSizesGolist(ctx context.Context, buildFlags, env []string, dir string, u
 		return nil, err
 	}
 	fields := strings.Fields(stdout.String())
+<<<<<<< HEAD
+=======
+	if len(fields) < 2 {
+		return nil, fmt.Errorf("could not determine GOARCH and Go compiler")
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	goarch := fields[0]
 	compiler := fields[1]
 	return types.SizesFor(compiler, goarch), nil

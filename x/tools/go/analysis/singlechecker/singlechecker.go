@@ -52,11 +52,19 @@ func Main(a *analysis.Analyzer) {
 	flag.Usage = func() {
 		paras := strings.Split(a.Doc, "\n\n")
 		fmt.Fprintf(os.Stderr, "%s: %s\n\n", a.Name, paras[0])
+<<<<<<< HEAD
 		fmt.Printf("Usage: %s [-flag] [package]\n\n", a.Name)
 		if len(paras) > 1 {
 			fmt.Println(strings.Join(paras[1:], "\n\n"))
 		}
 		fmt.Println("\nFlags:")
+=======
+		fmt.Fprintf(os.Stderr, "Usage: %s [-flag] [package]\n\n", a.Name)
+		if len(paras) > 1 {
+			fmt.Fprintln(os.Stderr, strings.Join(paras[1:], "\n\n"))
+		}
+		fmt.Fprintf(os.Stderr, "\nFlags:")
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		flag.PrintDefaults()
 	}
 

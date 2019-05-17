@@ -13,6 +13,10 @@ import (
 
 	"golang.org/x/tools/go/expect"
 	"golang.org/x/tools/go/packages"
+<<<<<<< HEAD
+=======
+	"golang.org/x/tools/internal/span"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 const (
@@ -45,12 +49,20 @@ const (
 // When invoking a method the expressions in the parameter list need to be
 // converted to values to be passed to the method.
 // There are a very limited set of types the arguments are allowed to be.
+<<<<<<< HEAD
 //   expect.Comment : passed the Comment instance being evaluated.
+=======
+//   expect.Note : passed the Note instance being evaluated.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //   string : can be supplied either a string literal or an identifier.
 //   int : can only be supplied an integer literal.
 //   *regexp.Regexp : can only be supplied a regular expression literal
 //   token.Pos : has a file position calculated as described below.
 //   token.Position : has a file position calculated as described below.
+<<<<<<< HEAD
+=======
+//   expect.Range: has a start and end position as described below.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //   interface{} : will be passed any value
 //
 // Position calculation
@@ -104,11 +116,19 @@ func (e *Exported) Expect(methods map[string]interface{}) error {
 		for i, convert := range mi.converters {
 			params[i], args, err = convert(n, args)
 			if err != nil {
+<<<<<<< HEAD
 				return fmt.Errorf("%v: %v", e.fset.Position(n.Pos), err)
 			}
 		}
 		if len(args) > 0 {
 			return fmt.Errorf("%v: unwanted args got %+v extra", e.fset.Position(n.Pos), args)
+=======
+				return fmt.Errorf("%v: %v", e.ExpectFileSet.Position(n.Pos), err)
+			}
+		}
+		if len(args) > 0 {
+			return fmt.Errorf("%v: unwanted args got %+v extra", e.ExpectFileSet.Position(n.Pos), args)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 		//TODO: catch the error returned from the method
 		mi.f.Call(params)
@@ -116,15 +136,25 @@ func (e *Exported) Expect(methods map[string]interface{}) error {
 	return nil
 }
 
+<<<<<<< HEAD
 type Range struct {
 	Start token.Pos
 	End   token.Pos
 }
+=======
+// Range is a type alias for span.Range for backwards compatability, prefer
+// using span.Range directly.
+type Range = span.Range
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 // Mark adds a new marker to the known set.
 func (e *Exported) Mark(name string, r Range) {
 	if e.markers == nil {
+<<<<<<< HEAD
 		e.markers = make(map[string]Range)
+=======
+		e.markers = make(map[string]span.Range)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 	e.markers[name] = r
 }
@@ -140,6 +170,12 @@ func (e *Exported) getNotes() error {
 			dirs = append(dirs, filepath.Dir(filename))
 		}
 	}
+<<<<<<< HEAD
+=======
+	for filename := range e.Config.Overlay {
+		dirs = append(dirs, filepath.Dir(filename))
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	pkgs, err := packages.Load(e.Config, dirs...)
 	if err != nil {
 		return fmt.Errorf("unable to load packages for directories %s: %v", dirs, err)
@@ -150,7 +186,11 @@ func (e *Exported) getNotes() error {
 			if err != nil {
 				return err
 			}
+<<<<<<< HEAD
 			l, err := expect.Parse(e.fset, filename, content)
+=======
+			l, err := expect.Parse(e.ExpectFileSet, filename, content)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			if err != nil {
 				return fmt.Errorf("Failed to extract expectations: %v", err)
 			}
@@ -166,7 +206,11 @@ func (e *Exported) getMarkers() error {
 		return nil
 	}
 	// set markers early so that we don't call getMarkers again from Expect
+<<<<<<< HEAD
 	e.markers = make(map[string]Range)
+=======
+	e.markers = make(map[string]span.Range)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return e.Expect(map[string]interface{}{
 		markMethod: e.Mark,
 	})
@@ -177,9 +221,17 @@ var (
 	identifierType = reflect.TypeOf(expect.Identifier(""))
 	posType        = reflect.TypeOf(token.Pos(0))
 	positionType   = reflect.TypeOf(token.Position{})
+<<<<<<< HEAD
 	rangeType      = reflect.TypeOf(Range{})
 	fsetType       = reflect.TypeOf((*token.FileSet)(nil))
 	regexType      = reflect.TypeOf((*regexp.Regexp)(nil))
+=======
+	rangeType      = reflect.TypeOf(span.Range{})
+	spanType       = reflect.TypeOf(span.Span{})
+	fsetType       = reflect.TypeOf((*token.FileSet)(nil))
+	regexType      = reflect.TypeOf((*regexp.Regexp)(nil))
+	exportedType   = reflect.TypeOf((*Exported)(nil))
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 // converter converts from a marker's argument parsed from the comment to
@@ -208,7 +260,15 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 		}, nil
 	case pt == fsetType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+<<<<<<< HEAD
 			return reflect.ValueOf(e.fset), args, nil
+=======
+			return reflect.ValueOf(e.ExpectFileSet), args, nil
+		}, nil
+	case pt == exportedType:
+		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			return reflect.ValueOf(e), args, nil
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}, nil
 	case pt == posType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
@@ -224,7 +284,11 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 			if err != nil {
 				return reflect.Value{}, nil, err
 			}
+<<<<<<< HEAD
 			return reflect.ValueOf(e.fset.Position(r.Start)), remains, nil
+=======
+			return reflect.ValueOf(e.ExpectFileSet.Position(r.Start)), remains, nil
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}, nil
 	case pt == rangeType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
@@ -234,8 +298,28 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 			}
 			return reflect.ValueOf(r), remains, nil
 		}, nil
+<<<<<<< HEAD
 	case pt == identifierType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+=======
+	case pt == spanType:
+		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			r, remains, err := e.rangeConverter(n, args)
+			if err != nil {
+				return reflect.Value{}, nil, err
+			}
+			spn, err := r.Span()
+			if err != nil {
+				return reflect.Value{}, nil, err
+			}
+			return reflect.ValueOf(spn), remains, nil
+		}, nil
+	case pt == identifierType:
+		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			arg := args[0]
 			args = args[1:]
 			switch arg := arg.(type) {
@@ -248,6 +332,12 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 
 	case pt == regexType:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+<<<<<<< HEAD
+=======
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			arg := args[0]
 			args = args[1:]
 			if _, ok := arg.(*regexp.Regexp); !ok {
@@ -258,6 +348,12 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 
 	case pt.Kind() == reflect.String:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+<<<<<<< HEAD
+=======
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			arg := args[0]
 			args = args[1:]
 			switch arg := arg.(type) {
@@ -271,6 +367,12 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 		}, nil
 	case pt.Kind() == reflect.Int64:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+<<<<<<< HEAD
+=======
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			arg := args[0]
 			args = args[1:]
 			switch arg := arg.(type) {
@@ -282,6 +384,12 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 		}, nil
 	case pt.Kind() == reflect.Bool:
 		return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+<<<<<<< HEAD
+=======
+			if len(args) < 1 {
+				return reflect.Value{}, nil, fmt.Errorf("missing argument")
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			arg := args[0]
 			args = args[1:]
 			b, ok := arg.(bool)
@@ -310,6 +418,12 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 	default:
 		if pt.Kind() == reflect.Interface && pt.NumMethod() == 0 {
 			return func(n *expect.Note, args []interface{}) (reflect.Value, []interface{}, error) {
+<<<<<<< HEAD
+=======
+				if len(args) < 1 {
+					return reflect.Value{}, nil, fmt.Errorf("missing argument")
+				}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				return reflect.ValueOf(args[0]), args[1:], nil
 			}, nil
 		}
@@ -317,9 +431,15 @@ func (e *Exported) buildConverter(pt reflect.Type) (converter, error) {
 	}
 }
 
+<<<<<<< HEAD
 func (e *Exported) rangeConverter(n *expect.Note, args []interface{}) (Range, []interface{}, error) {
 	if len(args) < 1 {
 		return Range{}, nil, fmt.Errorf("missing argument")
+=======
+func (e *Exported) rangeConverter(n *expect.Note, args []interface{}) (span.Range, []interface{}, error) {
+	if len(args) < 1 {
+		return span.Range{}, nil, fmt.Errorf("missing argument")
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 	arg := args[0]
 	args = args[1:]
@@ -329,18 +449,29 @@ func (e *Exported) rangeConverter(n *expect.Note, args []interface{}) (Range, []
 		switch arg {
 		case eofIdentifier:
 			// end of file identifier, look up the current file
+<<<<<<< HEAD
 			f := e.fset.File(n.Pos)
 			eof := f.Pos(f.Size())
 			return Range{Start: eof, End: token.NoPos}, args, nil
+=======
+			f := e.ExpectFileSet.File(n.Pos)
+			eof := f.Pos(f.Size())
+			return span.Range{FileSet: e.ExpectFileSet, Start: eof, End: token.NoPos}, args, nil
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		default:
 			// look up an marker by name
 			mark, ok := e.markers[string(arg)]
 			if !ok {
+<<<<<<< HEAD
 				return Range{}, nil, fmt.Errorf("cannot find marker %v", arg)
+=======
+				return span.Range{}, nil, fmt.Errorf("cannot find marker %v", arg)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			}
 			return mark, args, nil
 		}
 	case string:
+<<<<<<< HEAD
 		start, end, err := expect.MatchBefore(e.fset, e.FileContents, n.Pos, arg)
 		if err != nil {
 			return Range{}, nil, err
@@ -360,5 +491,26 @@ func (e *Exported) rangeConverter(n *expect.Note, args []interface{}) (Range, []
 		return Range{Start: start, End: end}, args, nil
 	default:
 		return Range{}, nil, fmt.Errorf("cannot convert %v to pos", arg)
+=======
+		start, end, err := expect.MatchBefore(e.ExpectFileSet, e.FileContents, n.Pos, arg)
+		if err != nil {
+			return span.Range{}, nil, err
+		}
+		if start == token.NoPos {
+			return span.Range{}, nil, fmt.Errorf("%v: pattern %s did not match", e.ExpectFileSet.Position(n.Pos), arg)
+		}
+		return span.Range{FileSet: e.ExpectFileSet, Start: start, End: end}, args, nil
+	case *regexp.Regexp:
+		start, end, err := expect.MatchBefore(e.ExpectFileSet, e.FileContents, n.Pos, arg)
+		if err != nil {
+			return span.Range{}, nil, err
+		}
+		if start == token.NoPos {
+			return span.Range{}, nil, fmt.Errorf("%v: pattern %s did not match", e.ExpectFileSet.Position(n.Pos), arg)
+		}
+		return span.Range{FileSet: e.ExpectFileSet, Start: start, End: end}, args, nil
+	default:
+		return span.Range{}, nil, fmt.Errorf("cannot convert %v to pos", arg)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 }

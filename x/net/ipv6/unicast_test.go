@@ -14,16 +14,20 @@ import (
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/internal/iana"
-	"golang.org/x/net/internal/nettest"
 	"golang.org/x/net/ipv6"
+	"golang.org/x/net/nettest"
 )
 
 func TestPacketConnReadWriteUnicastUDP(t *testing.T) {
 	switch runtime.GOOS {
+<<<<<<< HEAD
 	case "js", "nacl", "plan9", "windows":
+=======
+	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	if !supportsIPv6 {
+	if !nettest.SupportsIPv6() {
 		t.Skip("ipv6 is not supported")
 	}
 
@@ -41,7 +45,7 @@ func TestPacketConnReadWriteUnicastUDP(t *testing.T) {
 		Src:          net.IPv6loopback,
 	}
 	cf := ipv6.FlagTrafficClass | ipv6.FlagHopLimit | ipv6.FlagSrc | ipv6.FlagDst | ipv6.FlagInterface | ipv6.FlagPathMTU
-	ifi := nettest.RoutedInterface("ip6", net.FlagUp|net.FlagLoopback)
+	ifi, _ := nettest.RoutedInterface("ip6", net.FlagUp|net.FlagLoopback)
 	if ifi != nil {
 		cm.IfIndex = ifi.Index
 	}
@@ -49,7 +53,11 @@ func TestPacketConnReadWriteUnicastUDP(t *testing.T) {
 
 	for i, toggle := range []bool{true, false, true} {
 		if err := p.SetControlMessage(cf, toggle); err != nil {
+<<<<<<< HEAD
 			if nettest.ProtocolNotSupported(err) {
+=======
+			if protocolNotSupported(err) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				t.Logf("not supported on %s", runtime.GOOS)
 				continue
 			}
@@ -78,14 +86,18 @@ func TestPacketConnReadWriteUnicastUDP(t *testing.T) {
 
 func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 	switch runtime.GOOS {
+<<<<<<< HEAD
 	case "js", "nacl", "plan9", "windows":
+=======
+	case "fuchsia", "hurd", "js", "nacl", "plan9", "windows":
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		t.Skipf("not supported on %s", runtime.GOOS)
 	}
-	if !supportsIPv6 {
+	if !nettest.SupportsIPv6() {
 		t.Skip("ipv6 is not supported")
 	}
-	if m, ok := nettest.SupportsRawIPSocket(); !ok {
-		t.Skip(m)
+	if !nettest.SupportsRawSocket() {
+		t.Skipf("not supported on %s/%s", runtime.GOOS, runtime.GOARCH)
 	}
 
 	c, err := net.ListenPacket("ip6:ipv6-icmp", "::1")
@@ -107,7 +119,7 @@ func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 		Src:          net.IPv6loopback,
 	}
 	cf := ipv6.FlagTrafficClass | ipv6.FlagHopLimit | ipv6.FlagSrc | ipv6.FlagDst | ipv6.FlagInterface | ipv6.FlagPathMTU
-	ifi := nettest.RoutedInterface("ip6", net.FlagUp|net.FlagLoopback)
+	ifi, _ := nettest.RoutedInterface("ip6", net.FlagUp|net.FlagLoopback)
 	if ifi != nil {
 		cm.IfIndex = ifi.Index
 	}
@@ -124,9 +136,9 @@ func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 		if toggle {
 			psh = nil
 			if err := p.SetChecksum(true, 2); err != nil {
-				// Solaris never allows to modify
+				// AIX and Solaris never allow to modify
 				// ICMP properties.
-				if runtime.GOOS != "solaris" {
+				if runtime.GOOS != "aix" && runtime.GOOS != "solaris" {
 					t.Fatal(err)
 				}
 			}
@@ -147,7 +159,11 @@ func TestPacketConnReadWriteUnicastICMP(t *testing.T) {
 			t.Fatal(err)
 		}
 		if err := p.SetControlMessage(cf, toggle); err != nil {
+<<<<<<< HEAD
 			if nettest.ProtocolNotSupported(err) {
+=======
+			if protocolNotSupported(err) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				t.Logf("not supported on %s", runtime.GOOS)
 				continue
 			}

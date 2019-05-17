@@ -487,6 +487,12 @@ func ParseResponseForCert(bytes []byte, cert, issuer *x509.Certificate) (*Respon
 	if err != nil {
 		return nil, err
 	}
+<<<<<<< HEAD
+=======
+	if len(rest) > 0 {
+		return nil, ParseError("trailing data in OCSP response")
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	if n := len(basicResp.TBSResponseData.Responses); n == 0 || cert == nil && n > 1 {
 		return nil, ParseError("OCSP response contains bad number of responses")

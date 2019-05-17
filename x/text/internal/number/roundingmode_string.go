@@ -4,6 +4,23 @@ package number
 
 import "strconv"
 
+<<<<<<< HEAD
+=======
+func _() {
+	// An "invalid array index" compiler error signifies that the constant values have changed.
+	// Re-run the stringer command to generate them again.
+	var x [1]struct{}
+	_ = x[ToNearestEven-0]
+	_ = x[ToNearestZero-1]
+	_ = x[ToNearestAway-2]
+	_ = x[ToPositiveInf-3]
+	_ = x[ToNegativeInf-4]
+	_ = x[ToZero-5]
+	_ = x[AwayFromZero-6]
+	_ = x[numModes-7]
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 const _RoundingMode_name = "ToNearestEvenToNearestZeroToNearestAwayToPositiveInfToNegativeInfToZeroAwayFromZeronumModes"
 
 var _RoundingMode_index = [...]uint8{0, 13, 26, 39, 52, 65, 71, 83, 91}

@@ -907,6 +907,7 @@ square:
 	MULTIPLY(H0_0, H1_0, H2_0, H0_1, H1_1, H2_1, R_0, R_1, R_2, R5_1, R5_2, M0, M1, M2, M3, M4, M5, T_0, T_1, T_2, T_3, T_4, T_5, T_6, T_7, T_8, T_9)
 	REDUCE2(H0_0, H1_0, H2_0, M0, M1, M2, M3, M4, T_9, T_10, H0_1, M5)
 	BR next
+<<<<<<< HEAD
 
 TEXT ·hasVMSLFacility(SB), NOSPLIT, $24-1
 	MOVD  $x-24(SP), R1
@@ -929,3 +930,5 @@ vectorinstalled:
 novmsl:
 	MOVB $0, ret+0(FP) // no vx
 	RET
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

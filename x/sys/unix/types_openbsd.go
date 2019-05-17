@@ -274,3 +274,12 @@ type Utsname C.struct_utsname
 const SizeofUvmexp = C.sizeof_struct_uvmexp
 
 type Uvmexp C.struct_uvmexp
+<<<<<<< HEAD
+=======
+
+// Clockinfo
+
+const SizeofClockinfo = C.sizeof_struct_clockinfo
+
+type Clockinfo C.struct_clockinfo
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

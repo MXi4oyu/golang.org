@@ -8,7 +8,15 @@
 //
 // Example of use in another analysis:
 //
+<<<<<<< HEAD
 //	import "golang.org/x/tools/go/analysis/passes/inspect"
+=======
+//	import (
+//		"golang.org/x/tools/go/analysis"
+//		"golang.org/x/tools/go/analysis/passes/inspect"
+//		"golang.org/x/tools/go/ast/inspector"
+//	)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //
 //	var Analyzer = &analysis.Analyzer{
 //		...

@@ -12,5 +12,9 @@ import (
 )
 
 func (so *sockOpt) setAttachFilter(c *socket.Conn, f []bpf.RawInstruction) error {
+<<<<<<< HEAD
 	return errOpNoSupport
+=======
+	return errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }

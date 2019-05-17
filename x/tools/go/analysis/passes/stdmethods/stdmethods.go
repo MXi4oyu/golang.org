@@ -8,7 +8,10 @@ package stdmethods
 
 import (
 	"go/ast"
+<<<<<<< HEAD:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 	"go/token"
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 	"go/types"
 	"strings"
 
@@ -30,6 +33,7 @@ not error, to satisfy io.WriterTo:
 This check ensures that each method whose name matches one of several
 well-known interface methods from the standard library has the correct
 signature for that interface.
+<<<<<<< HEAD:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 
 Checked method names include:
 	Format GobEncode GobDecode MarshalJSON MarshalXML
@@ -38,6 +42,16 @@ Checked method names include:
 	WriteTo
 `
 
+=======
+
+Checked method names include:
+	Format GobEncode GobDecode MarshalJSON MarshalXML
+	Peek ReadByte ReadFrom ReadRune Scan Seek
+	UnmarshalJSON UnreadByte UnreadRune WriteByte
+	WriteTo
+`
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 var Analyzer = &analysis.Analyzer{
 	Name:     "stdmethods",
 	Doc:      Doc,
@@ -163,7 +177,11 @@ func matchParams(pass *analysis.Pass, expect []string, actual *types.Tuple, pref
 		if i >= actual.Len() {
 			return false
 		}
+<<<<<<< HEAD:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 		if !matchParamType(pass.Fset, pass.Pkg, x, actual.At(i).Type()) {
+=======
+		if !matchParamType(x, actual.At(i).Type()) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 			return false
 		}
 	}
@@ -174,6 +192,7 @@ func matchParams(pass *analysis.Pass, expect []string, actual *types.Tuple, pref
 }
 
 // Does this one type match?
+<<<<<<< HEAD:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 func matchParamType(fset *token.FileSet, pkg *types.Package, expect string, actual types.Type) bool {
 	expect = strings.TrimPrefix(expect, "=")
 	// Strip package name if we're in that package.
@@ -181,6 +200,10 @@ func matchParamType(fset *token.FileSet, pkg *types.Package, expect string, actu
 		expect = expect[n+1:]
 	}
 
+=======
+func matchParamType(expect string, actual types.Type) bool {
+	expect = strings.TrimPrefix(expect, "=")
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/tools/go/analysis/passes/stdmethods/stdmethods.go
 	// Overkill but easy.
 	return typeString(actual) == expect
 }

@@ -127,10 +127,14 @@ func BExportData(fset *token.FileSet, pkg *types.Package) (b []byte, err error) 
 	// --- generic export data ---
 
 	// populate type map with predeclared "known" types
-	for index, typ := range predeclared {
+	for index, typ := range predeclared() {
 		p.typIndex[typ] = index
 	}
+<<<<<<< HEAD:x/tools/go/internal/gcimporter/bexport.go
 	if len(p.typIndex) != len(predeclared) {
+=======
+	if len(p.typIndex) != len(predeclared()) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/tools/go/internal/gcimporter/bexport.go
 		return nil, internalError("duplicate entries in type map?")
 	}
 

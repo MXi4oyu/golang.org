@@ -2,7 +2,10 @@ package printf
 
 import (
 	"go/ast"
+<<<<<<< HEAD
 	"go/build"
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"go/types"
 
 	"golang.org/x/tools/go/analysis"
@@ -39,7 +42,11 @@ func matchArgTypeInternal(pass *analysis.Pass, t printfArgType, typ types.Type, 
 		}
 	}
 	// If the type implements fmt.Formatter, we have nothing to check.
+<<<<<<< HEAD
 	if isFormatter(pass, typ) {
+=======
+	if isFormatter(typ) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		return true
 	}
 	// If we can use a string, might arg (dynamically) implement the Stringer or Error interface?
@@ -235,5 +242,8 @@ func matchStructArgType(pass *analysis.Pass, t printfArgType, typ *types.Struct,
 	}
 	return true
 }
+<<<<<<< HEAD
 
 var archSizes = types.SizesFor("gc", build.Default.GOARCH)
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

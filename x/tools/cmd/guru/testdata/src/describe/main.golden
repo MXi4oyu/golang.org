@@ -14,6 +14,15 @@ definition of package "describe"
 	const pi     untyped float = 3.141
 	const pie    cake = 3.141
 
+<<<<<<< HEAD
+=======
+-------- @describe badimport1 --------
+import of package "nosuchpkg"
+
+-------- @describe badimport2 --------
+reference to package "nosuchpkg"
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 -------- @describe unsafe --------
 import of package "unsafe"
 	builtin Alignof 

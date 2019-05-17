@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+<<<<<<< HEAD
 // +build go1.9
 
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 package ipv4
 
 import (
@@ -91,6 +94,12 @@ func (c *payloadHandler) ReadBatch(ms []Message, flags int) (int, error) {
 			n = 0
 			err = &net.OpError{Op: "read", Net: c.PacketConn.LocalAddr().Network(), Source: c.PacketConn.LocalAddr(), Err: err}
 		}
+<<<<<<< HEAD
+=======
+		if compatFreeBSD32 && ms[0].NN > 0 {
+			adjustFreeBSD32(&ms[0])
+		}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		return n, err
 	}
 }
@@ -154,6 +163,12 @@ func (c *packetHandler) ReadBatch(ms []Message, flags int) (int, error) {
 			n = 0
 			err = &net.OpError{Op: "read", Net: c.IPConn.LocalAddr().Network(), Source: c.IPConn.LocalAddr(), Err: err}
 		}
+<<<<<<< HEAD
+=======
+		if compatFreeBSD32 && ms[0].NN > 0 {
+			adjustFreeBSD32(&ms[0])
+		}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		return n, err
 	}
 }

@@ -12,7 +12,11 @@ func (c *genericOpt) TrafficClass() (int, error) {
 	}
 	so, ok := sockOpts[ssoTrafficClass]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv6/genericopt.go
 		return 0, errOpNoSupport
+=======
+		return 0, errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv6/genericopt.go
 	}
 	return so.GetInt(c.Conn)
 }
@@ -25,7 +29,11 @@ func (c *genericOpt) SetTrafficClass(tclass int) error {
 	}
 	so, ok := sockOpts[ssoTrafficClass]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv6/genericopt.go
 		return errOpNoSupport
+=======
+		return errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv6/genericopt.go
 	}
 	return so.SetInt(c.Conn, tclass)
 }
@@ -37,7 +45,11 @@ func (c *genericOpt) HopLimit() (int, error) {
 	}
 	so, ok := sockOpts[ssoHopLimit]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv6/genericopt.go
 		return 0, errOpNoSupport
+=======
+		return 0, errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv6/genericopt.go
 	}
 	return so.GetInt(c.Conn)
 }
@@ -50,7 +62,11 @@ func (c *genericOpt) SetHopLimit(hoplim int) error {
 	}
 	so, ok := sockOpts[ssoHopLimit]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv6/genericopt.go
 		return errOpNoSupport
+=======
+		return errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv6/genericopt.go
 	}
 	return so.SetInt(c.Conn, hoplim)
 }

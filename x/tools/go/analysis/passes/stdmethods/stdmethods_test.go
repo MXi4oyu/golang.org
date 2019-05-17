@@ -15,3 +15,10 @@ func Test(t *testing.T) {
 	testdata := analysistest.TestData()
 	analysistest.Run(t, testdata, stdmethods.Analyzer, "a")
 }
+<<<<<<< HEAD
+=======
+
+func TestAnalyzeEncodingXML(t *testing.T) {
+	analysistest.Run(t, "", stdmethods.Analyzer, "encoding/xml")
+}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

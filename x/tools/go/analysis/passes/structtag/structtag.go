@@ -136,10 +136,30 @@ func checkTagDuplicates(pass *analysis.Pass, tag, key string, nearest, field *ty
 		*seen = map[[2]string]token.Pos{}
 	}
 	if pos, ok := (*seen)[[2]string{key, val}]; ok {
+<<<<<<< HEAD
 		posn := pass.Fset.Position(pos)
 		posn.Filename = filepath.Base(posn.Filename)
 		posn.Column = 0
 		pass.Reportf(nearest.Pos(), "struct field %s repeats %s tag %q also at %s", field.Name(), key, val, posn)
+=======
+		alsoPos := pass.Fset.Position(pos)
+		alsoPos.Column = 0
+
+		// Make the "also at" position relative to the current position,
+		// to ensure that all warnings are unambiguous and correct. For
+		// example, via anonymous struct fields, it's possible for the
+		// two fields to be in different packages and directories.
+		thisPos := pass.Fset.Position(field.Pos())
+		rel, err := filepath.Rel(filepath.Dir(thisPos.Filename), alsoPos.Filename)
+		if err != nil {
+			// Possibly because the paths are relative; leave the
+			// filename alone.
+		} else {
+			alsoPos.Filename = rel
+		}
+
+		pass.Reportf(nearest.Pos(), "struct field %s repeats %s tag %q also at %s", field.Name(), key, val, alsoPos)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	} else {
 		(*seen)[[2]string{key, val}] = field.Pos()
 	}

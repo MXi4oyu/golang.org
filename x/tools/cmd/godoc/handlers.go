@@ -21,7 +21,11 @@ import (
 	"text/template"
 
 	"golang.org/x/tools/godoc"
+<<<<<<< HEAD
 	"golang.org/x/tools/godoc/env"
+=======
+	"golang.org/x/tools/godoc/golangorgenv"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"golang.org/x/tools/godoc/redirect"
 	"golang.org/x/tools/godoc/vfs"
 )
@@ -40,7 +44,11 @@ type hostEnforcerHandler struct {
 }
 
 func (h hostEnforcerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 	if !env.EnforceHosts() {
+=======
+	if !golangorgenv.EnforceHosts() {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		h.h.ServeHTTP(w, r)
 		return
 	}

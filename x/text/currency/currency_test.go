@@ -149,6 +149,10 @@ func main() {
 `
 
 func TestLinking(t *testing.T) {
+<<<<<<< HEAD
+=======
+	t.Skip("skipping flaky test; see golang.org/issue/17538")
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	base := getSize(t, `fmt.Print(currency.CLDRVersion)`)
 	symbols := getSize(t, `fmt.Print(currency.Symbol(currency.USD))`)
 	if d := symbols - base; d < 2*1024 {

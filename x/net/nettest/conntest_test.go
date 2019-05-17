@@ -11,8 +11,11 @@ import (
 	"os"
 	"runtime"
 	"testing"
+<<<<<<< HEAD
 
 	"golang.org/x/net/internal/nettest"
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 func TestTestConn(t *testing.T) {
@@ -24,12 +27,21 @@ func TestTestConn(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+<<<<<<< HEAD
 			if !nettest.TestableNetwork(tt.network) {
 				t.Skipf("not supported on %s", runtime.GOOS)
 			}
 
 			mp := func() (c1, c2 net.Conn, stop func(), err error) {
 				ln, err := nettest.NewLocalListener(tt.network)
+=======
+			if !TestableNetwork(tt.network) {
+				t.Skipf("%s not supported on %s/%s", tt.network, runtime.GOOS, runtime.GOARCH)
+			}
+
+			mp := func() (c1, c2 net.Conn, stop func(), err error) {
+				ln, err := NewLocalListener(tt.network)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				if err != nil {
 					return nil, nil, nil, err
 				}

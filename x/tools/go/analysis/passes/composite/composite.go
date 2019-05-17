@@ -21,7 +21,20 @@ const Doc = `check for unkeyed composite literals
 This analyzer reports a diagnostic for composite literals of struct
 types imported from another package that do not use the field-keyed
 syntax. Such literals are fragile because the addition of a new field
+<<<<<<< HEAD
 (even if unexported) to the struct will cause compilation to fail.`
+=======
+(even if unexported) to the struct will cause compilation to fail.
+
+As an example,
+
+	err = &net.DNSConfigError{err}
+
+should be replaced by:
+
+	err = &net.DNSConfigError{Err: err}
+`
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 var Analyzer = &analysis.Analyzer{
 	Name:             "composites",

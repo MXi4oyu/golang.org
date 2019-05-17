@@ -35,6 +35,10 @@ const (
 	RootGOPATH
 	RootCurrentModule
 	RootModuleCache
+<<<<<<< HEAD
+=======
+	RootOther
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 // A Root is a starting point for a Walk.
@@ -44,10 +48,17 @@ type Root struct {
 }
 
 // SrcDirsRoots returns the roots from build.Default.SrcDirs(). Not modules-compatible.
+<<<<<<< HEAD
 func SrcDirsRoots() []Root {
 	var roots []Root
 	roots = append(roots, Root{filepath.Join(build.Default.GOROOT, "src"), RootGOROOT})
 	for _, p := range filepath.SplitList(build.Default.GOPATH) {
+=======
+func SrcDirsRoots(ctx *build.Context) []Root {
+	var roots []Root
+	roots = append(roots, Root{filepath.Join(ctx.GOROOT, "src"), RootGOROOT})
+	for _, p := range filepath.SplitList(ctx.GOPATH) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		roots = append(roots, Root{filepath.Join(p, "src"), RootGOPATH})
 	}
 	return roots
@@ -162,7 +173,11 @@ func (w *walker) shouldSkipDir(fi os.FileInfo) bool {
 func (w *walker) walk(path string, typ os.FileMode) error {
 	dir := filepath.Dir(path)
 	if typ.IsRegular() {
+<<<<<<< HEAD
 		if dir == w.root.Path {
+=======
+		if dir == w.root.Path && (w.root.Type == RootGOROOT || w.root.Type == RootGOPATH) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			// Doesn't make sense to have regular files
 			// directly in your $GOPATH/src or $GOROOT/src.
 			return fastwalk.SkipFiles

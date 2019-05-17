@@ -19,6 +19,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+<<<<<<< HEAD
+=======
+	"strings"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"sync"
 
 	"golang.org/x/tools/go/gcexportdata"
@@ -30,13 +34,66 @@ import (
 type LoadMode int
 
 const (
+<<<<<<< HEAD
 	// LoadFiles finds the packages and computes their source file lists.
 	// Package fields: ID, Name, Errors, GoFiles, and OtherFiles.
 	LoadFiles LoadMode = iota
+=======
+	// The following constants are used to specify which fields of the Package
+	// should be filled when loading is done. As a special case to provide
+	// backwards compatibility, a LoadMode of 0 is equivalent to LoadFiles.
+	// For all other LoadModes, the bits below specify which fields will be filled
+	// in the result packages.
+	// WARNING: This part of the go/packages API is EXPERIMENTAL. It might
+	// be changed or removed up until April 15 2019. After that date it will
+	// be frozen.
+	// TODO(matloob): Remove this comment on April 15.
+
+	// ID and Errors (if present) will always be filled.
+
+	// NeedName adds Name and PkgPath.
+	NeedName LoadMode = 1 << iota
+
+	// NeedFiles adds GoFiles and OtherFiles.
+	NeedFiles
+
+	// NeedCompiledGoFiles adds CompiledGoFiles.
+	NeedCompiledGoFiles
+
+	// NeedImports adds Imports. If NeedDeps is not set, the Imports field will contain
+	// "placeholder" Packages with only the ID set.
+	NeedImports
+
+	// NeedDeps adds the fields requested by the LoadMode in the packages in Imports. If NeedImports
+	// is not set NeedDeps has no effect.
+	NeedDeps
+
+	// NeedExportsFile adds ExportsFile.
+	NeedExportsFile
+
+	// NeedTypes adds Types, Fset, and IllTyped.
+	NeedTypes
+
+	// NeedSyntax adds Syntax.
+	NeedSyntax
+
+	// NeedTypesInfo adds TypesInfo.
+	NeedTypesInfo
+
+	// NeedTypesSizes adds TypesSizes.
+	NeedTypesSizes
+)
+
+const (
+	// LoadFiles finds the packages and computes their source file lists.
+	// Package fields: ID, Name, Errors, GoFiles, CompiledGoFiles, and OtherFiles.
+	LoadFiles = NeedName | NeedFiles | NeedCompiledGoFiles
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	// LoadImports adds import information for each package
 	// and its dependencies.
 	// Package fields added: Imports.
+<<<<<<< HEAD
 	LoadImports
 
 	// LoadTypes adds type information for package-level
@@ -55,6 +112,26 @@ const (
 	// Package fields added: Types, Fset, Illtyped, Syntax, and TypesInfo,
 	// for all packages in the import graph.
 	LoadAllSyntax
+=======
+	LoadImports = LoadFiles | NeedImports | NeedDeps
+
+	// LoadTypes adds type information for package-level
+	// declarations in the packages matching the patterns.
+	// Package fields added: Types, TypesSizes, Fset, and IllTyped.
+	// This mode uses type information provided by the build system when
+	// possible, and may fill in the ExportFile field.
+	LoadTypes = LoadImports | NeedTypes | NeedTypesSizes
+
+	// LoadSyntax adds typed syntax trees for the packages matching the patterns.
+	// Package fields added: Syntax, and TypesInfo, for direct pattern matches only.
+	LoadSyntax = LoadTypes | NeedSyntax | NeedTypesInfo
+
+	// LoadAllSyntax adds typed syntax trees for the packages matching the patterns
+	// and all dependencies.
+	// Package fields added: Types, Fset, IllTyped, Syntax, and TypesInfo,
+	// for all packages in the import graph.
+	LoadAllSyntax = LoadSyntax
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 // A Config specifies details about how packages should be loaded.
@@ -90,7 +167,11 @@ type Config struct {
 	BuildFlags []string
 
 	// Fset provides source position information for syntax trees and types.
+<<<<<<< HEAD
 	// If Fset is nil, the loader will create a new FileSet.
+=======
+	// If Fset is nil, Load will use a new fileset, but preserve Fset's value.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	Fset *token.FileSet
 
 	// ParseFile is called to read and parse each file
@@ -250,6 +331,12 @@ type Package struct {
 	// TypesInfo provides type information about the package's syntax trees.
 	// It is set only when Syntax is set.
 	TypesInfo *types.Info
+<<<<<<< HEAD
+=======
+
+	// TypesSizes provides the effective size function for types in TypesInfo.
+	TypesSizes types.Sizes
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // An Error describes a problem with a package's metadata, syntax, or types.
@@ -368,6 +455,7 @@ type loaderPackage struct {
 type loader struct {
 	pkgs map[string]*loaderPackage
 	Config
+<<<<<<< HEAD
 	sizes    types.Sizes
 	exportMu sync.Mutex // enforces mutual exclusion of exportdata operations
 }
@@ -377,6 +465,36 @@ func newLoader(cfg *Config) *loader {
 	if cfg != nil {
 		ld.Config = *cfg
 	}
+=======
+	sizes        types.Sizes
+	parseCache   map[string]*parseValue
+	parseCacheMu sync.Mutex
+	exportMu     sync.Mutex // enforces mutual exclusion of exportdata operations
+
+	// TODO(matloob): Add an implied mode here and use that instead of mode.
+	// Implied mode would contain all the fields we need the data for so we can
+	// get the actually requested fields. We'll zero them out before returning
+	// packages to the user. This will make it easier for us to get the conditions
+	// where we need certain modes right.
+}
+
+type parseValue struct {
+	f     *ast.File
+	err   error
+	ready chan struct{}
+}
+
+func newLoader(cfg *Config) *loader {
+	ld := &loader{
+		parseCache: map[string]*parseValue{},
+	}
+	if cfg != nil {
+		ld.Config = *cfg
+	}
+	if ld.Config.Mode == 0 {
+		ld.Config.Mode = LoadFiles // Preserve zero behavior of Mode for backwards compatibility.
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	if ld.Config.Env == nil {
 		ld.Config.Env = os.Environ()
 	}
@@ -389,7 +507,11 @@ func newLoader(cfg *Config) *loader {
 		}
 	}
 
+<<<<<<< HEAD
 	if ld.Mode >= LoadTypes {
+=======
+	if ld.Mode&NeedTypes != 0 {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		if ld.Fset == nil {
 			ld.Fset = token.NewFileSet()
 		}
@@ -398,12 +520,17 @@ func newLoader(cfg *Config) *loader {
 		// because we load source if export data is missing.
 		if ld.ParseFile == nil {
 			ld.ParseFile = func(fset *token.FileSet, filename string, src []byte) (*ast.File, error) {
+<<<<<<< HEAD
 				var isrc interface{}
 				if src != nil {
 					isrc = src
 				}
 				const mode = parser.AllErrors | parser.ParseComments
 				return parser.ParseFile(fset, filename, isrc, mode)
+=======
+				const mode = parser.AllErrors | parser.ParseComments
+				return parser.ParseFile(fset, filename, src, mode)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			}
 		}
 	}
@@ -426,11 +553,17 @@ func (ld *loader) refine(roots []string, list ...*Package) ([]*Package, error) {
 			rootIndex = i
 		}
 		lpkg := &loaderPackage{
+<<<<<<< HEAD
 			Package: pkg,
 			needtypes: ld.Mode >= LoadAllSyntax ||
 				ld.Mode >= LoadTypes && rootIndex >= 0,
 			needsrc: ld.Mode >= LoadAllSyntax ||
 				ld.Mode >= LoadSyntax && rootIndex >= 0 ||
+=======
+			Package:   pkg,
+			needtypes: (ld.Mode&(NeedTypes|NeedTypesInfo) != 0 && rootIndex < 0) || rootIndex >= 0,
+			needsrc: (ld.Mode&(NeedSyntax|NeedTypesInfo) != 0 && rootIndex < 0) || rootIndex >= 0 ||
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				len(ld.Overlay) > 0 || // Overlays can invalidate export data. TODO(matloob): make this check fine-grained based on dependencies on overlaid files
 				pkg.ExportFile == "" && pkg.PkgPath != "unsafe",
 		}
@@ -503,14 +636,25 @@ func (ld *loader) refine(roots []string, list ...*Package) ([]*Package, error) {
 		if lpkg.needsrc {
 			srcPkgs = append(srcPkgs, lpkg)
 		}
+<<<<<<< HEAD
+=======
+		if ld.Mode&NeedTypesSizes != 0 {
+			lpkg.TypesSizes = ld.sizes
+		}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		stack = stack[:len(stack)-1] // pop
 		lpkg.color = black
 
 		return lpkg.needsrc
 	}
 
+<<<<<<< HEAD
 	if ld.Mode < LoadImports {
 		//we do this to drop the stub import packages that we are not even going to try to resolve
+=======
+	if ld.Mode&(NeedImports|NeedDeps) == 0 {
+		// We do this to drop the stub import packages that we are not even going to try to resolve.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		for _, lpkg := range initial {
 			lpkg.Imports = nil
 		}
@@ -520,17 +664,32 @@ func (ld *loader) refine(roots []string, list ...*Package) ([]*Package, error) {
 			visit(lpkg)
 		}
 	}
+<<<<<<< HEAD
 	for _, lpkg := range srcPkgs {
 		// Complete type information is required for the
 		// immediate dependencies of each source package.
 		for _, ipkg := range lpkg.Imports {
 			imp := ld.pkgs[ipkg.ID]
 			imp.needtypes = true
+=======
+	if ld.Mode&NeedDeps != 0 { // TODO(matloob): This is only the case if NeedTypes is also set, right?
+		for _, lpkg := range srcPkgs {
+			// Complete type information is required for the
+			// immediate dependencies of each source package.
+			for _, ipkg := range lpkg.Imports {
+				imp := ld.pkgs[ipkg.ID]
+				imp.needtypes = true
+			}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 	}
 	// Load type data if needed, starting at
 	// the initial packages (roots of the import DAG).
+<<<<<<< HEAD
 	if ld.Mode >= LoadTypes {
+=======
+	if ld.Mode&NeedTypes != 0 {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		var wg sync.WaitGroup
 		for _, lpkg := range initial {
 			wg.Add(1)
@@ -543,16 +702,71 @@ func (ld *loader) refine(roots []string, list ...*Package) ([]*Package, error) {
 	}
 
 	result := make([]*Package, len(initial))
+<<<<<<< HEAD
 	for i, lpkg := range initial {
 		result[i] = lpkg.Package
 	}
+=======
+	importPlaceholders := make(map[string]*Package)
+	for i, lpkg := range initial {
+		result[i] = lpkg.Package
+	}
+	for i := range ld.pkgs {
+		// Clear all unrequested fields, for extra de-Hyrum-ization.
+		if ld.Mode&NeedName == 0 {
+			ld.pkgs[i].Name = ""
+			ld.pkgs[i].PkgPath = ""
+		}
+		if ld.Mode&NeedFiles == 0 {
+			ld.pkgs[i].GoFiles = nil
+			ld.pkgs[i].OtherFiles = nil
+		}
+		if ld.Mode&NeedCompiledGoFiles == 0 {
+			ld.pkgs[i].CompiledGoFiles = nil
+		}
+		if ld.Mode&NeedImports == 0 {
+			ld.pkgs[i].Imports = nil
+		}
+		if ld.Mode&NeedExportsFile == 0 {
+			ld.pkgs[i].ExportFile = ""
+		}
+		if ld.Mode&NeedTypes == 0 {
+			ld.pkgs[i].Types = nil
+			ld.pkgs[i].Fset = nil
+			ld.pkgs[i].IllTyped = false
+		}
+		if ld.Mode&NeedSyntax == 0 {
+			ld.pkgs[i].Syntax = nil
+		}
+		if ld.Mode&NeedTypesInfo == 0 {
+			ld.pkgs[i].TypesInfo = nil
+		}
+		if ld.Mode&NeedTypesSizes == 0 {
+			ld.pkgs[i].TypesSizes = nil
+		}
+		if ld.Mode&NeedDeps == 0 {
+			for j, pkg := range ld.pkgs[i].Imports {
+				ph, ok := importPlaceholders[pkg.ID]
+				if !ok {
+					ph = &Package{ID: pkg.ID}
+					importPlaceholders[pkg.ID] = ph
+				}
+				ld.pkgs[i].Imports[j] = ph
+			}
+		}
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return result, nil
 }
 
 // loadRecursive loads the specified package and its dependencies,
 // recursively, in parallel, in topological order.
 // It is atomic and idempotent.
+<<<<<<< HEAD
 // Precondition: ld.Mode >= LoadTypes.
+=======
+// Precondition: ld.Mode&NeedTypes.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func (ld *loader) loadRecursive(lpkg *loaderPackage) {
 	lpkg.loadOnce.Do(func() {
 		// Load the direct dependencies, in parallel.
@@ -582,6 +796,10 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		lpkg.Fset = ld.Fset
 		lpkg.Syntax = []*ast.File{}
 		lpkg.TypesInfo = new(types.Info)
+<<<<<<< HEAD
+=======
+		lpkg.TypesSizes = ld.sizes
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		return
 	}
 
@@ -669,6 +887,10 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		Scopes:     make(map[ast.Node]*types.Scope),
 		Selections: make(map[*ast.SelectorExpr]*types.Selection),
 	}
+<<<<<<< HEAD
+=======
+	lpkg.TypesSizes = ld.sizes
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	importer := importerFunc(func(path string) (*types.Package, error) {
 		if path == "unsafe" {
@@ -702,7 +924,11 @@ func (ld *loader) loadPackage(lpkg *loaderPackage) {
 		// Type-check bodies of functions only in non-initial packages.
 		// Example: for import graph A->B->C and initial packages {A,C},
 		// we can ignore function bodies in B.
+<<<<<<< HEAD
 		IgnoreFuncBodies: ld.Mode < LoadAllSyntax && !lpkg.initial,
+=======
+		IgnoreFuncBodies: (ld.Mode&(NeedDeps|NeedTypesInfo) == 0) && !lpkg.initial,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 		Error: appendError,
 		Sizes: ld.sizes,
@@ -755,6 +981,45 @@ func (f importerFunc) Import(path string) (*types.Package, error) { return f(pat
 // the number of parallel I/O calls per process.
 var ioLimit = make(chan bool, 20)
 
+<<<<<<< HEAD
+=======
+func (ld *loader) parseFile(filename string) (*ast.File, error) {
+	ld.parseCacheMu.Lock()
+	v, ok := ld.parseCache[filename]
+	if ok {
+		// cache hit
+		ld.parseCacheMu.Unlock()
+		<-v.ready
+	} else {
+		// cache miss
+		v = &parseValue{ready: make(chan struct{})}
+		ld.parseCache[filename] = v
+		ld.parseCacheMu.Unlock()
+
+		var src []byte
+		for f, contents := range ld.Config.Overlay {
+			if sameFile(f, filename) {
+				src = contents
+			}
+		}
+		var err error
+		if src == nil {
+			ioLimit <- true // wait
+			src, err = ioutil.ReadFile(filename)
+			<-ioLimit // signal
+		}
+		if err != nil {
+			v.err = err
+		} else {
+			v.f, v.err = ld.ParseFile(ld.Fset, filename, src)
+		}
+
+		close(v.ready)
+	}
+	return v.f, v.err
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // parseFiles reads and parses the Go source files and returns the ASTs
 // of the ones that could be at least partially parsed, along with a
 // list of I/O and parse errors encountered.
@@ -768,6 +1033,7 @@ func (ld *loader) parseFiles(filenames []string) ([]*ast.File, []error) {
 	parsed := make([]*ast.File, n)
 	errors := make([]error, n)
 	for i, file := range filenames {
+<<<<<<< HEAD
 		wg.Add(1)
 		go func(i int, filename string) {
 			ioLimit <- true // wait
@@ -788,6 +1054,16 @@ func (ld *loader) parseFiles(filenames []string) ([]*ast.File, []error) {
 				parsed[i], errors[i] = ld.ParseFile(ld.Fset, filename, src)
 			}
 			<-ioLimit // signal
+=======
+		if ld.Config.Context.Err() != nil {
+			parsed[i] = nil
+			errors[i] = ld.Config.Context.Err()
+			continue
+		}
+		wg.Add(1)
+		go func(i int, filename string) {
+			parsed[i], errors[i] = ld.parseFile(filename)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			wg.Done()
 		}(i, file)
 	}
@@ -828,7 +1104,11 @@ func sameFile(x, y string) bool {
 		// overlay case implies x==y.)
 		return true
 	}
+<<<<<<< HEAD
 	if filepath.Base(x) == filepath.Base(y) { // (optimisation)
+=======
+	if strings.EqualFold(filepath.Base(x), filepath.Base(y)) { // (optimisation)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		if xi, err := os.Stat(x); err == nil {
 			if yi, err := os.Stat(y); err == nil {
 				return os.SameFile(xi, yi)
@@ -941,5 +1221,9 @@ func (ld *loader) loadFromExportData(lpkg *loaderPackage) (*types.Package, error
 }
 
 func usesExportData(cfg *Config) bool {
+<<<<<<< HEAD
 	return LoadTypes <= cfg.Mode && cfg.Mode < LoadAllSyntax
+=======
+	return cfg.Mode&NeedExportsFile != 0 || cfg.Mode&NeedTypes != 0 && cfg.Mode&NeedTypesInfo == 0
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }

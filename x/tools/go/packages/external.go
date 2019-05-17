@@ -18,7 +18,11 @@ import (
 
 // Driver
 type driverRequest struct {
+<<<<<<< HEAD
 	Command    string            `json "command"`
+=======
+	Command    string            `json:"command"`
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	Mode       LoadMode          `json:"mode"`
 	Env        []string          `json:"env"`
 	BuildFlags []string          `json:"build_flags"`
@@ -26,7 +30,11 @@ type driverRequest struct {
 	Overlay    map[string][]byte `json:"overlay"`
 }
 
+<<<<<<< HEAD
 // findExternalTool returns the file path of a tool that supplies
+=======
+// findExternalDriver returns the file path of a tool that supplies
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // the build system package structure, or "" if not found."
 // If GOPACKAGESDRIVER is set in the environment findExternalTool returns its
 // value, otherwise it searches for a binary named gopackagesdriver on the PATH.

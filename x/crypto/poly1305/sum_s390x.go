@@ -6,6 +6,7 @@
 
 package poly1305
 
+<<<<<<< HEAD
 // hasVectorFacility reports whether the machine supports
 // the vector facility (vx).
 func hasVectorFacility() bool
@@ -16,6 +17,11 @@ func hasVMSLFacility() bool
 
 var hasVX = hasVectorFacility()
 var hasVMSL = hasVMSLFacility()
+=======
+import (
+	"golang.org/x/sys/cpu"
+)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 // poly1305vx is an assembly implementation of Poly1305 that uses vector
 // instructions. It must only be called if the vector facility (vx) is
@@ -33,12 +39,20 @@ func poly1305vmsl(out *[16]byte, m *byte, mlen uint64, key *[32]byte)
 // 16-byte result into out. Authenticating two different messages with the same
 // key allows an attacker to forge messages at will.
 func Sum(out *[16]byte, m []byte, key *[32]byte) {
+<<<<<<< HEAD
 	if hasVX {
+=======
+	if cpu.S390X.HasVX {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		var mPtr *byte
 		if len(m) > 0 {
 			mPtr = &m[0]
 		}
+<<<<<<< HEAD
 		if hasVMSL && len(m) > 256 {
+=======
+		if cpu.S390X.HasVXE && len(m) > 256 {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			poly1305vmsl(out, mPtr, uint64(len(m)), key)
 		} else {
 			poly1305vx(out, mPtr, uint64(len(m)), key)

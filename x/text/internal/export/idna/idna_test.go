@@ -10,9 +10,13 @@ import (
 	"strings"
 	"testing"
 
+<<<<<<< HEAD
 	"golang.org/x/text/internal/gen"
 	"golang.org/x/text/internal/testtext"
 	"golang.org/x/text/internal/ucd"
+=======
+	"golang.org/x/text/internal/testtext"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 func TestAllocToUnicode(t *testing.T) {
@@ -101,6 +105,7 @@ func doTest(t *testing.T, f func(string) (string, error), name, input, want, err
 	})
 }
 
+<<<<<<< HEAD
 func TestConformance(t *testing.T) {
 	testtext.SkipIfNotLong(t)
 
@@ -163,6 +168,8 @@ func TestConformance(t *testing.T) {
 	}
 }
 
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func unescape(s string) string {
 	s, err := strconv.Unquote(`"` + s + `"`)
 	if err != nil {

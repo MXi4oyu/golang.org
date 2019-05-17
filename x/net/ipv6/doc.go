@@ -240,5 +240,9 @@
 // IncludeSourceSpecificGroup may return an error.
 package ipv6 // import "golang.org/x/net/ipv6"
 
+<<<<<<< HEAD
 // BUG(mikio): This package is not implemented on AIX, JS, NaCl and
 // Plan 9.
+=======
+// BUG(mikio): This package is not implemented on JS, NaCl and Plan 9.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

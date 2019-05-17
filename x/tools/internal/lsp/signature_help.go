@@ -5,11 +5,47 @@
 package lsp
 
 import (
+<<<<<<< HEAD
 	"golang.org/x/tools/internal/lsp/protocol"
 	"golang.org/x/tools/internal/lsp/source"
 )
 
 func toProtocolSignatureHelp(info *source.SignatureInformation) *protocol.SignatureHelp {
+=======
+	"context"
+
+	"golang.org/x/tools/internal/lsp/protocol"
+	"golang.org/x/tools/internal/lsp/source"
+	"golang.org/x/tools/internal/span"
+)
+
+func (s *Server) signatureHelp(ctx context.Context, params *protocol.TextDocumentPositionParams) (*protocol.SignatureHelp, error) {
+	uri := span.NewURI(params.TextDocument.URI)
+	view := s.findView(ctx, uri)
+	f, m, err := newColumnMap(ctx, view, uri)
+	if err != nil {
+		return nil, err
+	}
+	spn, err := m.PointSpan(params.Position)
+	if err != nil {
+		return nil, err
+	}
+	rng, err := spn.Range(m.Converter)
+	if err != nil {
+		return nil, err
+	}
+	info, err := source.SignatureHelp(ctx, f, rng.Start)
+	if err != nil {
+		s.log.Infof(ctx, "no signature help for %s:%v:%v : %s", uri, int(params.Position.Line), int(params.Position.Character), err)
+	}
+	return toProtocolSignatureHelp(info), nil
+}
+
+func toProtocolSignatureHelp(info *source.SignatureInformation) *protocol.SignatureHelp {
+	if info == nil {
+		return &protocol.SignatureHelp{}
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return &protocol.SignatureHelp{
 		ActiveParameter: float64(info.ActiveParameter),
 		ActiveSignature: 0, // there is only ever one possible signature

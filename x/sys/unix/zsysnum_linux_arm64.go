@@ -285,4 +285,8 @@ const (
 	SYS_STATX                  = 291
 	SYS_IO_PGETEVENTS          = 292
 	SYS_RSEQ                   = 293
+<<<<<<< HEAD
+=======
+	SYS_KEXEC_FILE_LOAD        = 294
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )

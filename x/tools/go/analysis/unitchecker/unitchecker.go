@@ -329,6 +329,10 @@ func run(fset *token.FileSet, cfg *Config, analyzers []*analysis.Analyzer) ([]re
 				OtherFiles:        cfg.NonGoFiles,
 				Pkg:               pkg,
 				TypesInfo:         info,
+<<<<<<< HEAD
+=======
+				TypesSizes:        tc.Sizes,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				ResultOf:          inputs,
 				Report:            func(d analysis.Diagnostic) { act.diagnostics = append(act.diagnostics, d) },
 				ImportObjectFact:  facts.ImportObjectFact,

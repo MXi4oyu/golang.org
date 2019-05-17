@@ -2,15 +2,30 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+<<<<<<< HEAD
 // +build linux darwin
 
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 package interp_test
+
+// This test runs the SSA interpreter over sample Go programs.
+// Because the interpreter requires intrinsics for assembly
+// functions and many low-level runtime routines, it is inherently
+// not robust to evolutionary change in the standard library.
+// Therefore the test cases are restricted to programs that
+// use a fake standard library in testdata/src containing a tiny
+// subset of simple functions useful for writing assertions.
+//
+// We no longer attempt to interpret any real standard packages such as
+// fmt or testing, as it proved too fragile.
 
 import (
 	"bytes"
 	"fmt"
 	"go/build"
 	"go/types"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,12 +43,10 @@ import (
 // filenames comprising the main package of a program.
 // They are ordered quickest-first, roughly.
 //
-// TODO(adonovan): integrate into the $GOROOT/test driver scripts,
-// golden file checking, etc.
+// If a test in this list fails spuriously, remove it.
 var gorootTestTests = []string{
 	"235.go",
 	"alias1.go",
-	"chancap.go",
 	"func5.go",
 	"func6.go",
 	"func7.go",
@@ -63,12 +76,10 @@ var gorootTestTests = []string{
 	"bigmap.go",
 	"func.go",
 	"reorder2.go",
-	"closure.go",
 	"gc.go",
 	"simassign.go",
 	"iota.go",
 	"nilptr2.go",
-	"goprint.go", // doesn't actually assert anything (cmpout)
 	"utf.go",
 	"method.go",
 	"char_lit.go",
@@ -86,22 +97,19 @@ var gorootTestTests = []string{
 	"convert.go",
 	"convT2X.go",
 	"switch.go",
-	"initialize.go",
 	"ddd.go",
 	"blank.go", // partly disabled
-	"map.go",
 	"closedchan.go",
 	"divide.go",
 	"rename.go",
-	"const3.go",
 	"nil.go",
-	"recover.go", // reflection parts disabled
 	"recover1.go",
 	"recover2.go",
 	"recover3.go",
 	"typeswitch1.go",
 	"floatcmp.go",
 	"crlf.go", // doesn't actually assert anything (runoutput)
+<<<<<<< HEAD
 	// Slow tests follow.
 	"bom.go",                         // ~1.7s
 	"gc1.go",                         // ~1.7s
@@ -132,6 +140,8 @@ var gorootTestTests = []string{
 
 	// TODO(adonovan): add tests from $GOROOT/test/* subtrees:
 	// bench chan bugs fixedbugs interface ken.
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // These are files in go.tools/go/ssa/interp/testdata/.
@@ -150,9 +160,9 @@ var testdataTests = []string{
 	"recover.go",
 	"reflect.go",
 	"static.go",
-	"callstack.go",
 }
 
+<<<<<<< HEAD
 type successPredicate func(exitcode int, output string) error
 
 func run(t *testing.T, dir, input string, success successPredicate) bool {
@@ -161,20 +171,21 @@ func run(t *testing.T, dir, input string, success successPredicate) bool {
 		t.Skip("skipping on darwin until https://golang.org/issue/23166 is fixed")
 	}
 	fmt.Printf("Input: %s\n", input)
+=======
+func run(t *testing.T, input string) bool {
+	t.Logf("Input: %s\n", input)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	start := time.Now()
 
-	var inputs []string
-	for _, i := range strings.Split(input, " ") {
-		if strings.HasSuffix(i, ".go") {
-			i = dir + i
-		}
-		inputs = append(inputs, i)
-	}
+	ctx := build.Default    // copy
+	ctx.GOROOT = "testdata" // fake goroot
+	ctx.GOOS = "linux"
+	ctx.GOARCH = "amd64"
 
-	var conf loader.Config
-	if _, err := conf.FromArgs(inputs, true); err != nil {
-		t.Errorf("FromArgs(%s) failed: %s", inputs, err)
+	conf := loader.Config{Build: &ctx}
+	if _, err := conf.FromArgs([]string{input}, true); err != nil {
+		t.Errorf("FromArgs(%s) failed: %s", input, err)
 		return false
 	}
 
@@ -197,56 +208,46 @@ func run(t *testing.T, dir, input string, success successPredicate) bool {
 
 	iprog, err := conf.Load()
 	if err != nil {
-		t.Errorf("conf.Load(%s) failed: %s", inputs, err)
+		t.Errorf("conf.Load(%s) failed: %s", input, err)
 		return false
 	}
 
 	prog := ssautil.CreateProgram(iprog, ssa.SanityCheckFunctions)
 	prog.Build()
 
-	// Find first main or test package among the initial packages.
-	var mainPkg *ssa.Package
-	for _, info := range iprog.InitialPackages() {
-		if info.Pkg.Path() == "runtime" {
-			continue // not an initial package
-		}
-		p := prog.Package(info.Pkg)
-		if p.Pkg.Name() == "main" && p.Func("main") != nil {
-			mainPkg = p
-			break
-		}
-
-		mainPkg = prog.CreateTestMainPackage(p)
-		if mainPkg != nil {
-			break
-		}
-	}
+	mainPkg := prog.Package(iprog.Created[0].Pkg)
 	if mainPkg == nil {
-		t.Fatalf("no main or test packages among initial packages: %s", inputs)
+		t.Fatalf("not a main package: %s", input)
 	}
 
+<<<<<<< HEAD
 	var out bytes.Buffer
 	interp.CapturedOutput = &out
 
 	hint = fmt.Sprintf("To trace execution, run:\n%% go build golang.org/x/tools/cmd/ssadump && ./ssadump -build=C -test -run --interp=T %s\n", strings.Join(inputs, " "))
 	exitCode := interp.Interpret(mainPkg, 0, &types.StdSizes{WordSize: 8, MaxAlign: 8}, inputs[0], []string{})
+=======
+	interp.CapturedOutput = new(bytes.Buffer)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
-	// The definition of success varies with each file.
-	if err := success(exitCode, out.String()); err != nil {
-		t.Errorf("interp.Interpret(%s) failed: %s", inputs, err)
-		return false
+	hint = fmt.Sprintf("To trace execution, run:\n%% go build golang.org/x/tools/cmd/ssadump && ./ssadump -build=C -test -run --interp=T %s\n", input)
+	exitCode := interp.Interpret(mainPkg, 0, &types.StdSizes{WordSize: 8, MaxAlign: 8}, input, []string{})
+	if exitCode != 0 {
+		t.Fatalf("interpreting %s: exit code was %d", input, exitCode)
+	}
+	// $GOROOT/test tests use this convention:
+	if strings.Contains(interp.CapturedOutput.String(), "BUG") {
+		t.Fatalf("interpreting %s: exited zero but output contained 'BUG'", input)
 	}
 
 	hint = "" // call off the hounds
 
 	if false {
-		fmt.Println(input, time.Since(start)) // test profiling
+		t.Log(input, time.Since(start)) // test profiling
 	}
 
 	return true
 }
-
-const slash = string(os.PathSeparator)
 
 func printFailures(failures []string) {
 	if failures != nil {
@@ -257,26 +258,16 @@ func printFailures(failures []string) {
 	}
 }
 
-func success(exitcode int, output string) error {
-	if exitcode != 0 {
-		return fmt.Errorf("exit code was %d", exitcode)
-	}
-	if strings.Contains(output, "BUG") {
-		return fmt.Errorf("exited zero but output contained 'BUG'")
-	}
-	return nil
-}
-
 // TestTestdataFiles runs the interpreter on testdata/*.go.
 func TestTestdataFiles(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	var failures []string
-	start := time.Now()
 	for _, input := range testdataTests {
-		if testing.Short() && time.Since(start) > 30*time.Second {
-			printFailures(failures)
-			t.Skipf("timeout - aborting test")
-		}
-		if !run(t, "testdata"+slash, input, success) {
+		if !run(t, filepath.Join(cwd, "testdata", input)) {
 			failures = append(failures, input)
 		}
 	}
@@ -285,19 +276,20 @@ func TestTestdataFiles(t *testing.T) {
 
 // TestGorootTest runs the interpreter on $GOROOT/test/*.go.
 func TestGorootTest(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // too slow (~30s)
-	}
-
 	var failures []string
 
 	for _, input := range gorootTestTests {
+<<<<<<< HEAD
 		if !run(t, filepath.Join(build.Default.GOROOT, "test")+slash, input, success) {
+=======
+		if !run(t, filepath.Join(build.Default.GOROOT, "test", input)) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			failures = append(failures, input)
 		}
 	}
 	printFailures(failures)
 }
+<<<<<<< HEAD
 
 // CreateTestMainPackage should return nil if there were no tests.
 func TestNullTestmainPackage(t *testing.T) {
@@ -316,3 +308,5 @@ func TestNullTestmainPackage(t *testing.T) {
 		t.Fatalf("CreateTestMainPackage returned non-nil")
 	}
 }
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

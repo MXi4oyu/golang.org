@@ -43,10 +43,31 @@ func nametomib(name string) (mib []_C_int, err error) {
 	return nil, EINVAL
 }
 
+<<<<<<< HEAD
+=======
+func SysctlClockinfo(name string) (*Clockinfo, error) {
+	mib, err := sysctlmib(name)
+	if err != nil {
+		return nil, err
+	}
+
+	n := uintptr(SizeofClockinfo)
+	var ci Clockinfo
+	if err := sysctl(mib, (*byte)(unsafe.Pointer(&ci)), &n, nil, 0); err != nil {
+		return nil, err
+	}
+	if n != SizeofClockinfo {
+		return nil, EIO
+	}
+	return &ci, nil
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func SysctlUvmexp(name string) (*Uvmexp, error) {
 	mib, err := sysctlmib(name)
 	if err != nil {
 		return nil, err
+<<<<<<< HEAD
 	}
 
 	n := uintptr(SizeofUvmexp)
@@ -57,6 +78,18 @@ func SysctlUvmexp(name string) (*Uvmexp, error) {
 	if n != SizeofUvmexp {
 		return nil, EIO
 	}
+=======
+	}
+
+	n := uintptr(SizeofUvmexp)
+	var u Uvmexp
+	if err := sysctl(mib, (*byte)(unsafe.Pointer(&u)), &n, nil, 0); err != nil {
+		return nil, err
+	}
+	if n != SizeofUvmexp {
+		return nil, EIO
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return &u, nil
 }
 
@@ -94,6 +127,16 @@ func Getwd() (string, error) {
 	return string(buf[:n]), nil
 }
 
+<<<<<<< HEAD
+=======
+func Sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
+	if raceenabled {
+		raceReleaseMerge(unsafe.Pointer(&ioSync))
+	}
+	return sendfile(outfd, infd, offset, count)
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // TODO
 func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
 	return -1, ENOSYS

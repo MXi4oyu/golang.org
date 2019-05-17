@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/acme"
+	"golang.org/x/net/idna"
 )
 
 // createCertRetryAfter is how much time to wait before removing a failed state
@@ -62,10 +63,16 @@ type HostPolicy func(ctx context.Context, host string) error
 // HostWhitelist returns a policy where only the specified host names are allowed.
 // Only exact matches are currently supported. Subdomains, regexp or wildcard
 // will not match.
+//
+// Note that all hosts will be converted to Punycode via idna.Lookup.ToASCII so that
+// Manager.GetCertificate can handle the Unicode IDN and mixedcase hosts correctly.
+// Invalid hosts will be silently ignored.
 func HostWhitelist(hosts ...string) HostPolicy {
 	whitelist := make(map[string]bool, len(hosts))
 	for _, h := range hosts {
-		whitelist[h] = true
+		if h, err := idna.Lookup.ToASCII(h); err == nil {
+			whitelist[h] = true
+		}
 	}
 	return func(_ context.Context, host string) error {
 		if !whitelist[host] {
@@ -243,7 +250,21 @@ func (m *Manager) GetCertificate(hello *tls.ClientHelloInfo) (*tls.Certificate, 
 	if !strings.Contains(strings.Trim(name, "."), ".") {
 		return nil, errors.New("acme/autocert: server name component count invalid")
 	}
+<<<<<<< HEAD
 	if strings.ContainsAny(name, `+/\`) {
+=======
+
+	// Note that this conversion is necessary because some server names in the handshakes
+	// started by some clients (such as cURL) are not converted to Punycode, which will
+	// prevent us from obtaining certificates for them. In addition, we should also treat
+	// example.com and EXAMPLE.COM as equivalent and return the same certificate for them.
+	// Fortunately, this conversion also helped us deal with this kind of mixedcase problems.
+	//
+	// Due to the "σςΣ" problem (see https://unicode.org/faq/idn.html#22), we can't use
+	// idna.Punycode.ToASCII (or just idna.ToASCII) here.
+	name, err := idna.Lookup.ToASCII(name)
+	if err != nil {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		return nil, errors.New("acme/autocert: server name contains invalid character")
 	}
 
@@ -801,6 +822,7 @@ func (m *Manager) putCertToken(ctx context.Context, name string, cert *tls.Certi
 	defer m.tokensMu.Unlock()
 	if m.certTokens == nil {
 		m.certTokens = make(map[string]*tls.Certificate)
+<<<<<<< HEAD
 	}
 	m.certTokens[name] = cert
 	m.cachePut(ctx, certKey{domain: name, isToken: true}, cert)
@@ -832,6 +854,39 @@ func (m *Manager) httpToken(ctx context.Context, tokenPath string) ([]byte, erro
 	return m.Cache.Get(ctx, httpTokenCacheKey(tokenPath))
 }
 
+=======
+	}
+	m.certTokens[name] = cert
+	m.cachePut(ctx, certKey{domain: name, isToken: true}, cert)
+}
+
+// deleteCertToken removes the token certificate with the specified name
+// from both m.certTokens map and m.Cache.
+func (m *Manager) deleteCertToken(name string) {
+	m.tokensMu.Lock()
+	defer m.tokensMu.Unlock()
+	delete(m.certTokens, name)
+	if m.Cache != nil {
+		ck := certKey{domain: name, isToken: true}
+		m.Cache.Delete(context.Background(), ck.String())
+	}
+}
+
+// httpToken retrieves an existing http-01 token value from an in-memory map
+// or the optional cache.
+func (m *Manager) httpToken(ctx context.Context, tokenPath string) ([]byte, error) {
+	m.tokensMu.RLock()
+	defer m.tokensMu.RUnlock()
+	if v, ok := m.httpTokens[tokenPath]; ok {
+		return v, nil
+	}
+	if m.Cache == nil {
+		return nil, fmt.Errorf("acme/autocert: no token at %q", tokenPath)
+	}
+	return m.Cache.Get(ctx, httpTokenCacheKey(tokenPath))
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // putHTTPToken stores an http-01 token value using tokenPath as key
 // in both in-memory map and the optional Cache.
 //

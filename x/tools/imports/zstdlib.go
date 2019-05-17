@@ -112,6 +112,10 @@ var stdlib = map[string]map[string]bool{
 		"Reader":          true,
 		"Repeat":          true,
 		"Replace":         true,
+<<<<<<< HEAD
+=======
+		"ReplaceAll":      true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"Runes":           true,
 		"Split":           true,
 		"SplitAfter":      true,
@@ -441,6 +445,12 @@ var stdlib = map[string]map[string]bool{
 		"RequireAnyClientCert":                 true,
 		"Server":                               true,
 		"SignatureScheme":                      true,
+<<<<<<< HEAD
+=======
+		"TLS_AES_128_GCM_SHA256":               true,
+		"TLS_AES_256_GCM_SHA384":               true,
+		"TLS_CHACHA20_POLY1305_SHA256":         true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA": true,
 		"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": true,
 		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": true,
@@ -469,6 +479,10 @@ var stdlib = map[string]map[string]bool{
 		"VersionTLS10":                            true,
 		"VersionTLS11":                            true,
 		"VersionTLS12":                            true,
+<<<<<<< HEAD
+=======
+		"VersionTLS13":                            true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"X25519":                                  true,
 		"X509KeyPair":                             true,
 	},
@@ -1835,6 +1849,10 @@ var stdlib = map[string]map[string]bool{
 		"R_PPC_UADDR32":                             true,
 		"R_RISCV":                                   true,
 		"R_RISCV_32":                                true,
+<<<<<<< HEAD
+=======
+		"R_RISCV_32_PCREL":                          true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"R_RISCV_64":                                true,
 		"R_RISCV_ADD16":                             true,
 		"R_RISCV_ADD32":                             true,
@@ -2260,6 +2278,10 @@ var stdlib = map[string]map[string]bool{
 		"IMAGE_FILE_MACHINE_AMD64":             true,
 		"IMAGE_FILE_MACHINE_ARM":               true,
 		"IMAGE_FILE_MACHINE_ARM64":             true,
+<<<<<<< HEAD
+=======
+		"IMAGE_FILE_MACHINE_ARMNT":             true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"IMAGE_FILE_MACHINE_EBC":               true,
 		"IMAGE_FILE_MACHINE_I386":              true,
 		"IMAGE_FILE_MACHINE_IA64":              true,
@@ -2753,6 +2775,10 @@ var stdlib = map[string]map[string]bool{
 		"New":             true,
 		"Note":            true,
 		"Package":         true,
+<<<<<<< HEAD
+=======
+		"PreserveAST":     true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"Synopsis":        true,
 		"ToHTML":          true,
 		"ToText":          true,
@@ -2764,9 +2790,16 @@ var stdlib = map[string]map[string]bool{
 		"Source": true,
 	},
 	"go/importer": map[string]bool{
+<<<<<<< HEAD
 		"Default": true,
 		"For":     true,
 		"Lookup":  true,
+=======
+		"Default":     true,
+		"For":         true,
+		"ForCompiler": true,
+		"Lookup":      true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	},
 	"go/parser": map[string]bool{
 		"AllErrors":         true,
@@ -3296,6 +3329,10 @@ var stdlib = map[string]map[string]bool{
 		"SeekEnd":          true,
 		"SeekStart":        true,
 		"Seeker":           true,
+<<<<<<< HEAD
+=======
+		"StringWriter":     true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"TeeReader":        true,
 		"WriteCloser":      true,
 		"WriteSeeker":      true,
@@ -3498,6 +3535,15 @@ var stdlib = map[string]map[string]bool{
 		"Word":          true,
 	},
 	"math/bits": map[string]bool{
+<<<<<<< HEAD
+=======
+		"Add":             true,
+		"Add32":           true,
+		"Add64":           true,
+		"Div":             true,
+		"Div32":           true,
+		"Div64":           true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"LeadingZeros":    true,
 		"LeadingZeros16":  true,
 		"LeadingZeros32":  true,
@@ -3508,6 +3554,12 @@ var stdlib = map[string]map[string]bool{
 		"Len32":           true,
 		"Len64":           true,
 		"Len8":            true,
+<<<<<<< HEAD
+=======
+		"Mul":             true,
+		"Mul32":           true,
+		"Mul64":           true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"OnesCount":       true,
 		"OnesCount16":     true,
 		"OnesCount32":     true,
@@ -3527,6 +3579,12 @@ var stdlib = map[string]map[string]bool{
 		"RotateLeft32":    true,
 		"RotateLeft64":    true,
 		"RotateLeft8":     true,
+<<<<<<< HEAD
+=======
+		"Sub":             true,
+		"Sub32":           true,
+		"Sub64":           true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"TrailingZeros":   true,
 		"TrailingZeros16": true,
 		"TrailingZeros32": true,
@@ -3870,6 +3928,10 @@ var stdlib = map[string]map[string]bool{
 		"StatusTeapot":                        true,
 		"StatusTemporaryRedirect":             true,
 		"StatusText":                          true,
+<<<<<<< HEAD
+=======
+		"StatusTooEarly":                      true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"StatusTooManyRequests":               true,
 		"StatusUnauthorized":                  true,
 		"StatusUnavailableForLegalReasons":    true,
@@ -4140,6 +4202,10 @@ var stdlib = map[string]map[string]bool{
 		"Truncate":          true,
 		"Unsetenv":          true,
 		"UserCacheDir":      true,
+<<<<<<< HEAD
+=======
+		"UserHomeDir":       true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	},
 	"os/exec": map[string]bool{
 		"Cmd":            true,
@@ -4244,6 +4310,10 @@ var stdlib = map[string]map[string]bool{
 		"MakeMapWithSize": true,
 		"MakeSlice":       true,
 		"Map":             true,
+<<<<<<< HEAD
+=======
+		"MapIter":         true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"MapOf":           true,
 		"Method":          true,
 		"New":             true,
@@ -4419,9 +4489,18 @@ var stdlib = map[string]map[string]bool{
 		"Version":                 true,
 	},
 	"runtime/debug": map[string]bool{
+<<<<<<< HEAD
 		"FreeOSMemory":    true,
 		"GCStats":         true,
 		"PrintStack":      true,
+=======
+		"BuildInfo":       true,
+		"FreeOSMemory":    true,
+		"GCStats":         true,
+		"Module":          true,
+		"PrintStack":      true,
+		"ReadBuildInfo":   true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"ReadGCStats":     true,
 		"SetGCPercent":    true,
 		"SetMaxStack":     true,
@@ -4547,6 +4626,10 @@ var stdlib = map[string]map[string]bool{
 		"Reader":         true,
 		"Repeat":         true,
 		"Replace":        true,
+<<<<<<< HEAD
+=======
+		"ReplaceAll":     true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"Replacer":       true,
 		"Split":          true,
 		"SplitAfter":     true,
@@ -6105,6 +6188,10 @@ var stdlib = map[string]map[string]bool{
 		"FreeLibrary":                                  true,
 		"Fsid":                                         true,
 		"Fstat":                                        true,
+<<<<<<< HEAD
+=======
+		"Fstatat":                                      true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"Fstatfs":                                      true,
 		"Fstore_t":                                     true,
 		"Fsync":                                        true,
@@ -9362,6 +9449,10 @@ var stdlib = map[string]map[string]bool{
 		"Syscall":                                      true,
 		"Syscall12":                                    true,
 		"Syscall15":                                    true,
+<<<<<<< HEAD
+=======
+		"Syscall18":                                    true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"Syscall6":                                     true,
 		"Syscall9":                                     true,
 		"Sysctl":                                       true,
@@ -9630,6 +9721,10 @@ var stdlib = map[string]map[string]bool{
 		"TransmitFile":                                 true,
 		"TransmitFileBuffers":                          true,
 		"Truncate":                                     true,
+<<<<<<< HEAD
+=======
+		"UNIX_PATH_MAX":                                true,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		"USAGE_MATCH_TYPE_AND":                         true,
 		"USAGE_MATCH_TYPE_OR":                          true,
 		"UTF16FromString":                              true,
@@ -9751,6 +9846,32 @@ var stdlib = map[string]map[string]bool{
 		"XP1_UNI_RECV":                                 true,
 		"XP1_UNI_SEND":                                 true,
 	},
+<<<<<<< HEAD
+=======
+	"syscall/js": map[string]bool{
+		"Error":         true,
+		"Func":          true,
+		"FuncOf":        true,
+		"Global":        true,
+		"Null":          true,
+		"Type":          true,
+		"TypeBoolean":   true,
+		"TypeFunction":  true,
+		"TypeNull":      true,
+		"TypeNumber":    true,
+		"TypeObject":    true,
+		"TypeString":    true,
+		"TypeSymbol":    true,
+		"TypeUndefined": true,
+		"TypedArray":    true,
+		"TypedArrayOf":  true,
+		"Undefined":     true,
+		"Value":         true,
+		"ValueError":    true,
+		"ValueOf":       true,
+		"Wrapper":       true,
+	},
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"testing": map[string]bool{
 		"AllocsPerRun":      true,
 		"B":                 true,

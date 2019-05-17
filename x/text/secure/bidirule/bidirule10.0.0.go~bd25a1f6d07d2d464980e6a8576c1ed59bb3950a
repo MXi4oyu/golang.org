@@ -1,0 +1,15 @@
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+<<<<<<< HEAD:x/text/secure/bidirule/bidirule10.0.0.go:x/text/secure/bidirule/bidirule10.0.0.go
+// +build go1.10
+=======
+// +build aix linux solaris
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/internal/nettest/helper_nobsd.go:x/net/internal/nettest/helper_nobsd.go
+
+package bidirule
+
+func (t *Transformer) isFinal() bool {
+	return t.state == ruleLTRFinal || t.state == ruleRTLFinal || t.state == ruleInitial
+}

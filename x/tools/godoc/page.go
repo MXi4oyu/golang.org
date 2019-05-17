@@ -11,7 +11,11 @@ import (
 	"runtime"
 	"strings"
 
+<<<<<<< HEAD
 	"golang.org/x/tools/godoc/env"
+=======
+	"golang.org/x/tools/godoc/golangorgenv"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 // Page describes the contents of the top-level godoc webpage.
@@ -62,6 +66,7 @@ func (p *Presentation) ServeError(w http.ResponseWriter, r *http.Request, relpat
 	})
 }
 
+<<<<<<< HEAD
 func googleCN(r *http.Request) bool {
 	if r.FormValue("googlecn") != "" {
 		return true
@@ -76,5 +81,23 @@ func googleCN(r *http.Request) bool {
 	case "", "ZZ", "CN":
 		return true
 	}
+=======
+// googleCN reports whether request r is considered
+// to be served from golang.google.cn.
+func googleCN(r *http.Request) bool {
+	if r.FormValue("googlecn") != "" {
+		return true
+	}
+	if strings.HasSuffix(r.Host, ".cn") {
+		return true
+	}
+	if !golangorgenv.CheckCountry() {
+		return false
+	}
+	switch r.Header.Get("X-Appengine-Country") {
+	case "", "ZZ", "CN":
+		return true
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return false
 }

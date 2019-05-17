@@ -52,8 +52,14 @@ type target struct {
 	Bits       int
 }
 
+<<<<<<< HEAD
 // List of all Linux targets supported by the go compiler. sparc64 is not
 // currently supported, though a port is in progress.
+=======
+// List of all Linux targets supported by the go compiler. Currently, riscv64
+// and sparc64 are not fully supported, but there is enough support already to
+// generate Go type and error definitions.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 var targets = []target{
 	{
 		GoArch:    "386",
@@ -133,6 +139,7 @@ var targets = []target{
 		SignedChar: true,
 		Bits:       64,
 	},
+<<<<<<< HEAD
 	// {
 	// 	GoArch:    "sparc64",
 	// 	LinuxArch: "sparc",
@@ -140,6 +147,15 @@ var targets = []target{
 	// 	BigEndian: true,
 	// 	Bits:      64,
 	// },
+=======
+	{
+		GoArch:    "sparc64",
+		LinuxArch: "sparc",
+		GNUArch:   "sparc64-linux-gnu",
+		BigEndian: true,
+		Bits:      64,
+	},
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // ptracePairs is a list of pairs of targets that can, in some cases,
@@ -532,7 +548,11 @@ func (t *target) mksyscallFlags() (flags []string) {
 		}
 	}
 
+<<<<<<< HEAD
 	// This flag menas a 64-bit value should use (even, odd)-pair.
+=======
+	// This flag means a 64-bit value should use (even, odd)-pair.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	if t.GoArch == "arm" || (t.LinuxArch == "mips" && t.Bits == 32) {
 		flags = append(flags, "-arm")
 	}

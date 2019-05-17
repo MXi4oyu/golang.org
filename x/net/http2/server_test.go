@@ -2705,6 +2705,26 @@ func TestServerDoS_MaxHeaderListSize(t *testing.T) {
 	}
 }
 
+func TestServer_Response_Stream_With_Missing_Trailer(t *testing.T) {
+	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
+		w.Header().Set("Trailer", "test-trailer")
+		return nil
+	}, func(st *serverTester) {
+		getSlash(st)
+		hf := st.wantHeaders()
+		if !hf.HeadersEnded() {
+			t.Fatal("want END_HEADERS flag")
+		}
+		df := st.wantData()
+		if len(df.data) != 0 {
+			t.Fatal("did not want data")
+		}
+		if !df.StreamEnded() {
+			t.Fatal("want END_STREAM flag")
+		}
+	})
+}
+
 func TestCompressionErrorOnWrite(t *testing.T) {
 	const maxStrLen = 8 << 10
 	var serverConfig *http.Server
@@ -3523,7 +3543,7 @@ func TestCheckValidHTTP2Request(t *testing.T) {
 	}
 	for i, tt := range tests {
 		got := checkValidHTTP2RequestHeaders(tt.h)
-		if !reflect.DeepEqual(got, tt.want) {
+		if !equalError(got, tt.want) {
 			t.Errorf("%d. checkValidHTTP2Request = %v; want %v", i, got, tt.want)
 		}
 	}
@@ -3698,6 +3718,7 @@ func TestIssue20704Race(t *testing.T) {
 		itemSize  = 1 << 10
 		itemCount = 100
 	)
+<<<<<<< HEAD
 
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
 		for i := 0; i < itemCount; i++ {
@@ -3744,6 +3765,54 @@ func TestServer_Rejects_TooSmall(t *testing.T) {
 	})
 }
 
+=======
+
+	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
+		for i := 0; i < itemCount; i++ {
+			_, err := w.Write(make([]byte, itemSize))
+			if err != nil {
+				return
+			}
+		}
+	}, optOnlyServer)
+	defer st.Close()
+
+	tr := &Transport{TLSClientConfig: tlsConfigInsecure}
+	defer tr.CloseIdleConnections()
+	cl := &http.Client{Transport: tr}
+
+	for i := 0; i < 1000; i++ {
+		resp, err := cl.Get(st.ts.URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		// Force a RST stream to the server by closing without
+		// reading the body:
+		resp.Body.Close()
+	}
+}
+
+func TestServer_Rejects_TooSmall(t *testing.T) {
+	testServerResponse(t, func(w http.ResponseWriter, r *http.Request) error {
+		ioutil.ReadAll(r.Body)
+		return nil
+	}, func(st *serverTester) {
+		st.writeHeaders(HeadersFrameParam{
+			StreamID: 1, // clients send odd numbers
+			BlockFragment: st.encodeHeader(
+				":method", "POST",
+				"content-length", "4",
+			),
+			EndStream:  false, // to say DATA frames are coming
+			EndHeaders: true,
+		})
+		st.writeData(1, true, []byte("12345"))
+
+		st.wantRSTStream(1, ErrCodeProtocol)
+	})
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // Tests that a handler setting "Connection: close" results in a GOAWAY being sent,
 // and the connection still completing.
 func TestServerHandlerConnectionClose(t *testing.T) {

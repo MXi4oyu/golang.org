@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"fmt"
 	"go/ast"
+	"go/build"
 	"go/format"
 	"go/parser"
 	"go/printer"
@@ -45,6 +46,11 @@ type Options struct {
 // so it is important that filename be accurate.
 // To process data ``as if'' it were in filename, pass the data as a non-nil src.
 func Process(filename string, src []byte, opt *Options) ([]byte, error) {
+	env := &fixEnv{GOPATH: build.Default.GOPATH, GOROOT: build.Default.GOROOT}
+	return process(filename, src, opt, env)
+}
+
+func process(filename string, src []byte, opt *Options, env *fixEnv) ([]byte, error) {
 	if opt == nil {
 		opt = &Options{Comments: true, TabIndent: true, TabWidth: 8}
 	}
@@ -63,7 +69,11 @@ func Process(filename string, src []byte, opt *Options) ([]byte, error) {
 	}
 
 	if !opt.FormatOnly {
+<<<<<<< HEAD
 		if err := fixImports(fileSet, file, filename); err != nil {
+=======
+		if err := fixImports(fileSet, file, filename, env); err != nil {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 			return nil, err
 		}
 	}

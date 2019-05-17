@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build !amd64 appengine gccgo
-
 package salsa
 
 const rounds = 20
@@ -202,10 +200,16 @@ func core(out *[64]byte, in *[16]byte, k *[32]byte, c *[16]byte) {
 	out[63] = byte(x15 >> 24)
 }
 
+<<<<<<< HEAD
 // XORKeyStream crypts bytes from in to out using the given key and counters.
 // In and out must overlap entirely or not at all. Counter
 // contains the raw salsa20 counter bytes (both nonce and block counter).
 func XORKeyStream(out, in []byte, counter *[16]byte, key *[32]byte) {
+=======
+// genericXORKeyStream is the generic implementation of XORKeyStream to be used
+// when no assembly implementation is available.
+func genericXORKeyStream(out, in []byte, counter *[16]byte, key *[32]byte) {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	var block [64]byte
 	var counterCopy [16]byte
 	copy(counterCopy[:], counter[:])

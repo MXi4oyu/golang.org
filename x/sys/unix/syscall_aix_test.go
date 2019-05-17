@@ -123,6 +123,29 @@ func TestUtimesNanoAt(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
+=======
+func TestSelect(t *testing.T) {
+	_, err := unix.Select(0, nil, nil, nil, &unix.Timeval{Sec: 0, Usec: 0})
+	if err != nil {
+		t.Fatalf("Select: %v", err)
+	}
+
+	dur := 150 * time.Millisecond
+	tv := unix.NsecToTimeval(int64(dur))
+	start := time.Now()
+	_, err = unix.Select(0, nil, nil, nil, &tv)
+	took := time.Since(start)
+	if err != nil {
+		t.Fatalf("Select: %v", err)
+	}
+
+	if took < dur {
+		t.Errorf("Select: timeout should have been at least %v, got %v", dur, took)
+	}
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func TestPselect(t *testing.T) {
 	if runtime.GOARCH == "ppc64" {
 		t.Skip("pselect issue with structure timespec on AIX 7.2 tl0, skipping test")

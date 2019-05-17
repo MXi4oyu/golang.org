@@ -4,6 +4,12 @@
 
 package icmp
 
+import (
+	"golang.org/x/net/internal/iana"
+	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
+)
+
 // A TimeExceeded represents an ICMP time exceeded message body.
 type TimeExceeded struct {
 	Data       []byte      // data, known as original datagram field
@@ -16,11 +22,30 @@ func (p *TimeExceeded) Len(proto int) int {
 		return 0
 	}
 	l, _ := multipartMessageBodyDataLen(proto, true, p.Data, p.Extensions)
+<<<<<<< HEAD
 	return 4 + l
+=======
+	return l
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
 func (p *TimeExceeded) Marshal(proto int) ([]byte, error) {
+<<<<<<< HEAD
+=======
+	var typ Type
+	switch proto {
+	case iana.ProtocolICMP:
+		typ = ipv4.ICMPTypeTimeExceeded
+	case iana.ProtocolIPv6ICMP:
+		typ = ipv6.ICMPTypeTimeExceeded
+	default:
+		return nil, errInvalidProtocol
+	}
+	if !validExtensions(typ, p.Extensions) {
+		return nil, errInvalidExtension
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return marshalMultipartMessageBody(proto, true, p.Data, p.Extensions)
 }
 

@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+=======
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // Package checker defines the implementation of the checker commands.
 // The same code drives the multi-analysis driver, the single-analysis
 // driver that is conventionally provided for convenience along with
@@ -42,12 +49,20 @@ var (
 	CPUProfile, MemProfile, Trace string
 )
 
+<<<<<<< HEAD
 // RegisterFlags registers command-line flags used the analysis driver.
+=======
+// RegisterFlags registers command-line flags used by the analysis driver.
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func RegisterFlags() {
 	// When adding flags here, remember to update
 	// the list of suppressed flags in analysisflags.
 
+<<<<<<< HEAD
 	flag.StringVar(&Debug, "debug", Debug, `debug flags, any subset of "lpsv"`)
+=======
+	flag.StringVar(&Debug, "debug", Debug, `debug flags, any subset of "fpstv"`)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	flag.StringVar(&CPUProfile, "cpuprofile", "", "write CPU profile to this file")
 	flag.StringVar(&MemProfile, "memprofile", "", "write memory profile to this file")
@@ -141,11 +156,19 @@ func load(patterns []string, allSyntax bool) ([]*packages.Package, error) {
 			err = fmt.Errorf("%d errors during loading", n)
 		} else if n == 1 {
 			err = fmt.Errorf("error during loading")
+<<<<<<< HEAD
 		}
 	}
 	if len(initial) == 0 {
 		err = fmt.Errorf("%s matched no packages", strings.Join(patterns, " "))
 	}
+=======
+		} else if len(initial) == 0 {
+			err = fmt.Errorf("%s matched no packages", strings.Join(patterns, " "))
+		}
+	}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	return initial, err
 }
 
@@ -492,12 +515,21 @@ func (act *action) execOnce() {
 		OtherFiles:        act.pkg.OtherFiles,
 		Pkg:               act.pkg.Types,
 		TypesInfo:         act.pkg.TypesInfo,
+<<<<<<< HEAD
+=======
+		TypesSizes:        act.pkg.TypesSizes,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		ResultOf:          inputs,
 		Report:            func(d analysis.Diagnostic) { act.diagnostics = append(act.diagnostics, d) },
 		ImportObjectFact:  act.importObjectFact,
 		ExportObjectFact:  act.exportObjectFact,
 		ImportPackageFact: act.importPackageFact,
 		ExportPackageFact: act.exportPackageFact,
+<<<<<<< HEAD
+=======
+		AllObjectFacts:    act.allObjectFacts,
+		AllPackageFacts:   act.allPackageFacts,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 	act.pass = pass
 
@@ -540,11 +572,19 @@ func inheritFacts(act, dep *action) {
 		// Optionally serialize/deserialize fact
 		// to verify that it works across address spaces.
 		if serialize {
+<<<<<<< HEAD
 			var err error
 			fact, err = codeFact(fact)
 			if err != nil {
 				log.Panicf("internal error: encoding of %T fact failed in %v", fact, act)
 			}
+=======
+			encodedFact, err := codeFact(fact)
+			if err != nil {
+				log.Panicf("internal error: encoding of %T fact failed in %v", fact, act)
+			}
+			fact = encodedFact
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 
 		if false {
@@ -562,11 +602,19 @@ func inheritFacts(act, dep *action) {
 		// to verify that it works across address spaces
 		// and is deterministic.
 		if serialize {
+<<<<<<< HEAD
 			var err error
 			fact, err = codeFact(fact)
 			if err != nil {
 				log.Panicf("internal error: encoding of %T fact failed in %v", fact, act)
 			}
+=======
+			encodedFact, err := codeFact(fact)
+			if err != nil {
+				log.Panicf("internal error: encoding of %T fact failed in %v", fact, act)
+			}
+			fact = encodedFact
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		}
 
 		if false {
@@ -661,6 +709,18 @@ func (act *action) exportObjectFact(obj types.Object, fact analysis.Fact) {
 	}
 }
 
+<<<<<<< HEAD
+=======
+// allObjectFacts implements Pass.AllObjectFacts.
+func (act *action) allObjectFacts() []analysis.ObjectFact {
+	facts := make([]analysis.ObjectFact, 0, len(act.objectFacts))
+	for k := range act.objectFacts {
+		facts = append(facts, analysis.ObjectFact{k.obj, act.objectFacts[k]})
+	}
+	return facts
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // importPackageFact implements Pass.ImportPackageFact.
 // Given a non-nil pointer ptr of type *T, where *T satisfies Fact,
 // fact copies the fact value to *ptr.
@@ -698,4 +758,16 @@ func factType(fact analysis.Fact) reflect.Type {
 	return t
 }
 
+<<<<<<< HEAD
+=======
+// allObjectFacts implements Pass.AllObjectFacts.
+func (act *action) allPackageFacts() []analysis.PackageFact {
+	facts := make([]analysis.PackageFact, 0, len(act.packageFacts))
+	for k := range act.packageFacts {
+		facts = append(facts, analysis.PackageFact{k.pkg, act.packageFacts[k]})
+	}
+	return facts
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func dbg(b byte) bool { return strings.IndexByte(Debug, b) >= 0 }

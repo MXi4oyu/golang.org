@@ -1411,7 +1411,15 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 		// followed by the query production (see Sections 3.3 and 3.4 of
 		// [RFC3986]).
 		f(":authority", host)
+<<<<<<< HEAD
 		f(":method", req.Method)
+=======
+		m := req.Method
+		if m == "" {
+			m = http.MethodGet
+		}
+		f(":method", m)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		if req.Method != "CONNECT" {
 			f(":path", path)
 			f(":scheme", req.URL.Scheme)

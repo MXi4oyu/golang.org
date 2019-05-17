@@ -258,6 +258,7 @@ tail:
 	MOVD R8, R3
 	MOVD $0, R4
 	JMP  continue
+<<<<<<< HEAD
 
 // func hasVectorFacility() bool
 TEXT ·hasVectorFacility(SB), NOSPLIT, $24-1
@@ -281,3 +282,5 @@ vectorinstalled:
 novector:
 	MOVB $0, ret+0(FP) // no vx
 	RET
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

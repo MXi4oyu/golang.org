@@ -24,6 +24,10 @@ import (
 
 	"golang.org/x/tools/go/expect"
 	"golang.org/x/tools/go/packages"
+<<<<<<< HEAD
+=======
+	"golang.org/x/tools/internal/span"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 var (
@@ -61,12 +65,22 @@ type Exported struct {
 	// Modules is the module description that was used to produce this exported data set.
 	Modules []Module
 
+<<<<<<< HEAD
 	temp    string                       // the temporary directory that was exported to
 	primary string                       // the first non GOROOT module that was exported
 	written map[string]map[string]string // the full set of exported files
 	fset    *token.FileSet               // The file set used when parsing expectations
 	notes   []*expect.Note               // The list of expectations extracted from go source files
 	markers map[string]Range             // The set of markers extracted from go source files
+=======
+	ExpectFileSet *token.FileSet // The file set used when parsing expectations
+
+	temp    string                       // the temporary directory that was exported to
+	primary string                       // the first non GOROOT module that was exported
+	written map[string]map[string]string // the full set of exported files
+	notes   []*expect.Note               // The list of expectations extracted from go source files
+	markers map[string]span.Range        // The set of markers extracted from go source files
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // Exporter implementations are responsible for converting from the generic description of some
@@ -136,12 +150,23 @@ func Export(t testing.TB, exporter Exporter, modules []Module) *Exported {
 			Dir:     temp,
 			Env:     append(os.Environ(), "GOPACKAGESDRIVER=off"),
 			Overlay: make(map[string][]byte),
+<<<<<<< HEAD
 		},
 		Modules: modules,
 		temp:    temp,
 		primary: modules[0].Name,
 		written: map[string]map[string]string{},
 		fset:    token.NewFileSet(),
+=======
+			Tests:   true,
+			Mode:    packages.LoadImports,
+		},
+		Modules:       modules,
+		temp:          temp,
+		primary:       modules[0].Name,
+		written:       map[string]map[string]string{},
+		ExpectFileSet: token.NewFileSet(),
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 	defer func() {
 		if t.Failed() || t.Skipped() {
@@ -277,6 +302,19 @@ func (e *Exported) Cleanup() {
 		log.Printf("Skipping cleanup of temp dir: %s", e.temp)
 		return
 	}
+<<<<<<< HEAD
+=======
+	// Make everything read-write so that the Module exporter's module cache can be deleted.
+	filepath.Walk(e.temp, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			os.Chmod(path, 0777)
+		}
+		return nil
+	})
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	os.RemoveAll(e.temp) // ignore errors
 	e.temp = ""
 }

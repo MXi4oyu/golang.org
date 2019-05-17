@@ -206,6 +206,31 @@ func TestGetCertificate_trailingDot(t *testing.T) {
 	man := &Manager{Prompt: AcceptTOS}
 	defer man.stopRenew()
 	hello := clientHelloInfo("example.org.", true)
+<<<<<<< HEAD
+=======
+	testGetCertificate(t, man, "example.org", hello)
+}
+
+func TestGetCertificate_unicodeIDN(t *testing.T) {
+	man := &Manager{Prompt: AcceptTOS}
+	defer man.stopRenew()
+
+	hello := clientHelloInfo("σσσ.com", true)
+	testGetCertificate(t, man, "xn--4xaaa.com", hello)
+
+	hello = clientHelloInfo("σςΣ.com", true)
+	testGetCertificate(t, man, "xn--4xaaa.com", hello)
+}
+
+func TestGetCertificate_mixedcase(t *testing.T) {
+	man := &Manager{Prompt: AcceptTOS}
+	defer man.stopRenew()
+
+	hello := clientHelloInfo("example.org", true)
+	testGetCertificate(t, man, "example.org", hello)
+
+	hello = clientHelloInfo("EXAMPLE.ORG", true)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	testGetCertificate(t, man, "example.org", hello)
 }
 
@@ -858,11 +883,19 @@ func TestCache(t *testing.T) {
 	cert, err := dummyCert(ecdsaKey.Public(), exampleDomain)
 	if err != nil {
 		t.Fatal(err)
+<<<<<<< HEAD
 	}
 	ecdsaCert := &tls.Certificate{
 		Certificate: [][]byte{cert},
 		PrivateKey:  ecdsaKey,
 	}
+=======
+	}
+	ecdsaCert := &tls.Certificate{
+		Certificate: [][]byte{cert},
+		PrivateKey:  ecdsaKey,
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, 512)
 	if err != nil {
@@ -882,6 +915,7 @@ func TestCache(t *testing.T) {
 	ctx := context.Background()
 
 	if err := man.cachePut(ctx, exampleCertKey, ecdsaCert); err != nil {
+<<<<<<< HEAD
 		t.Fatalf("man.cachePut: %v", err)
 	}
 	if err := man.cachePut(ctx, exampleCertKeyRSA, rsaCert); err != nil {
@@ -900,19 +934,40 @@ func TestCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("man.cacheGet: %v", err)
 	}
+=======
+		t.Fatalf("man.cachePut: %v", err)
+	}
+	if err := man.cachePut(ctx, exampleCertKeyRSA, rsaCert); err != nil {
+		t.Fatalf("man.cachePut: %v", err)
+	}
+
+	res, err := man.cacheGet(ctx, exampleCertKey)
+	if err != nil {
+		t.Fatalf("man.cacheGet: %v", err)
+	}
+	if res == nil || !bytes.Equal(res.Certificate[0], ecdsaCert.Certificate[0]) {
+		t.Errorf("man.cacheGet = %+v; want %+v", res, ecdsaCert)
+	}
+
+	res, err = man.cacheGet(ctx, exampleCertKeyRSA)
+	if err != nil {
+		t.Fatalf("man.cacheGet: %v", err)
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	if res == nil || !bytes.Equal(res.Certificate[0], rsaCert.Certificate[0]) {
 		t.Errorf("man.cacheGet = %+v; want %+v", res, rsaCert)
 	}
 }
 
 func TestHostWhitelist(t *testing.T) {
-	policy := HostWhitelist("example.com", "example.org", "*.example.net")
+	policy := HostWhitelist("example.com", "EXAMPLE.ORG", "*.example.net", "σςΣ.com")
 	tt := []struct {
 		host  string
 		allow bool
 	}{
 		{"example.com", true},
 		{"example.org", true},
+		{"xn--4xaaa.com", true},
 		{"one.example.com", false},
 		{"two.example.org", false},
 		{"three.example.net", false},

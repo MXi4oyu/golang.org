@@ -2,7 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+<<<<<<< HEAD
 // +build !darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!windows
+=======
+// +build !aix,!darwin,!dragonfly,!freebsd,!linux,!netbsd,!openbsd,!solaris,!windows
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 
 package icmp
 
@@ -29,5 +33,5 @@ package icmp
 //	ListenPacket("ip6:ipv6-icmp", "fe80::1%en0")
 //	ListenPacket("ip6:58", "::")
 func ListenPacket(network, address string) (*PacketConn, error) {
-	return nil, errOpNoSupport
+	return nil, errNotImplemented
 }

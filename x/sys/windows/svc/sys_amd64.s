@@ -14,6 +14,11 @@ TEXT ·servicemain(SB),7,$0
 	MOVQ	·sName(SB), CX
 	MOVQ	$·servicectlhandler(SB), DX
 	// BUG(pastarmovj): Figure out a way to pass in context in R8.
+<<<<<<< HEAD
+=======
+	// Set context to 123456 to test issue #25660.
+	MOVQ	$123456, R8
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	MOVQ	·cRegisterServiceCtrlHandlerExW(SB), AX
 	CALL	AX
 	CMPQ	AX, $0

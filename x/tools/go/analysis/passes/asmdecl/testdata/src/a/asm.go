@@ -41,6 +41,10 @@ func wrapper(x int)
 
 func f15271() (x uint32)
 func f17584(x float32, y complex64)
+<<<<<<< HEAD:x/tools/go/analysis/passes/asmdecl/testdata/src/a/asm.go
+=======
+func f29318(x [2][2]uint64)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/tools/go/analysis/passes/asmdecl/testdata/src/a/asm.go
 
 func noframe1(x int32)
 func noframe2(x int32)

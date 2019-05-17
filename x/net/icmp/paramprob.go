@@ -6,7 +6,9 @@ package icmp
 
 import (
 	"encoding/binary"
+
 	"golang.org/x/net/internal/iana"
+	"golang.org/x/net/ipv4"
 )
 
 // A ParamProb represents an ICMP parameter problem message body.
@@ -22,23 +24,43 @@ func (p *ParamProb) Len(proto int) int {
 		return 0
 	}
 	l, _ := multipartMessageBodyDataLen(proto, true, p.Data, p.Extensions)
+<<<<<<< HEAD
 	return 4 + l
+=======
+	return l
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // Marshal implements the Marshal method of MessageBody interface.
 func (p *ParamProb) Marshal(proto int) ([]byte, error) {
-	if proto == iana.ProtocolIPv6ICMP {
+	switch proto {
+	case iana.ProtocolICMP:
+		if !validExtensions(ipv4.ICMPTypeParameterProblem, p.Extensions) {
+			return nil, errInvalidExtension
+		}
+		b, err := marshalMultipartMessageBody(proto, true, p.Data, p.Extensions)
+		if err != nil {
+			return nil, err
+		}
+		b[0] = byte(p.Pointer)
+		return b, nil
+	case iana.ProtocolIPv6ICMP:
 		b := make([]byte, p.Len(proto))
 		binary.BigEndian.PutUint32(b[:4], uint32(p.Pointer))
 		copy(b[4:], p.Data)
 		return b, nil
+	default:
+		return nil, errInvalidProtocol
 	}
+<<<<<<< HEAD
 	b, err := marshalMultipartMessageBody(proto, true, p.Data, p.Extensions)
 	if err != nil {
 		return nil, err
 	}
 	b[0] = byte(p.Pointer)
 	return b, nil
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // parseParamProb parses b as an ICMP parameter problem message body.

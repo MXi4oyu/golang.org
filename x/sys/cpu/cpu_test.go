@@ -13,6 +13,12 @@ import (
 
 func TestAMD64minimalFeatures(t *testing.T) {
 	if runtime.GOARCH == "amd64" {
+<<<<<<< HEAD
+=======
+		if !cpu.Initialized {
+			t.Fatal("Initialized expected true, got false")
+		}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		if !cpu.X86.HasSSE2 {
 			t.Fatal("HasSSE2 expected true, got false")
 		}
@@ -38,3 +44,37 @@ func TestARM64minimalFeatures(t *testing.T) {
 		t.Fatal("HasFP expected true, got false")
 	}
 }
+<<<<<<< HEAD
+=======
+
+// On ppc64x, the ISA bit for POWER8 should always be set on POWER8 and beyond.
+func TestPPC64minimalFeatures(t *testing.T) {
+	// Do not run this with gccgo on ppc64, as it doesn't have POWER8 as a minimum
+	// requirement.
+	if runtime.Compiler == "gccgo" && runtime.GOARCH == "ppc64" {
+		t.Skip("gccgo does not require POWER8 on ppc64; skipping")
+	}
+	if runtime.GOARCH == "ppc64" || runtime.GOARCH == "ppc64le" {
+		if !cpu.PPC64.IsPOWER8 {
+			t.Fatal("IsPOWER8 expected true, got false")
+		}
+	}
+}
+
+func TestS390X(t *testing.T) {
+	if runtime.GOARCH != "s390x" {
+		return
+	}
+	if testing.Verbose() {
+		t.Logf("%+v\n", cpu.S390X)
+	}
+	// z/Architecture is mandatory
+	if !cpu.S390X.HasZARCH {
+		t.Error("HasZARCH expected true, got false")
+	}
+	// vector-enhancements require vector facility to be enabled
+	if cpu.S390X.HasVXE && !cpu.S390X.HasVX {
+		t.Error("HasVX expected true, got false (VXE is true)")
+	}
+}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

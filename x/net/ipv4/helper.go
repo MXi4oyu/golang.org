@@ -7,23 +7,49 @@ package ipv4
 import (
 	"errors"
 	"net"
+<<<<<<< HEAD
+=======
+	"runtime"
+
+	"golang.org/x/net/internal/socket"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 var (
 	errInvalidConn              = errors.New("invalid connection")
 	errMissingAddress           = errors.New("missing address")
 	errMissingHeader            = errors.New("missing header")
+	errNilHeader                = errors.New("nil header")
 	errHeaderTooShort           = errors.New("header too short")
-	errBufferTooShort           = errors.New("buffer too short")
+	errExtHeaderTooShort        = errors.New("extension header too short")
 	errInvalidConnType          = errors.New("invalid conn type")
-	errOpNoSupport              = errors.New("operation not supported")
 	errNoSuchInterface          = errors.New("no such interface")
 	errNoSuchMulticastInterface = errors.New("no such multicast interface")
+	errNotImplemented           = errors.New("not implemented on " + runtime.GOOS + "/" + runtime.GOARCH)
 
+<<<<<<< HEAD
 	// See http://www.freebsd.org/doc/en/books/porters-handbook/freebsd-versions.html.
 	freebsdVersion uint32
 )
 
+=======
+	// See https://www.freebsd.org/doc/en/books/porters-handbook/versions.html.
+	freebsdVersion  uint32
+	compatFreeBSD32 bool // 386 emulation on amd64
+)
+
+// See golang.org/issue/30899.
+func adjustFreeBSD32(m *socket.Message) {
+	// FreeBSD 12.0-RELEASE is affected by https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=236737
+	if 1200086 <= freebsdVersion && freebsdVersion < 1201000 {
+		l := (m.NN + 4 - 1) &^ (4 - 1)
+		if m.NN < l && l <= len(m.OOB) {
+			m.NN = l
+		}
+	}
+}
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 func boolint(b bool) int {
 	if b {
 		return 1

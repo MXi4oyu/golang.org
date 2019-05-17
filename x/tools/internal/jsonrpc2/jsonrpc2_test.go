@@ -90,6 +90,7 @@ func TestHeaderCall(t *testing.T) {
 	}
 }
 
+<<<<<<< HEAD
 func prepare(ctx context.Context, t *testing.T, withHeaders bool) (*testHandler, *testHandler) {
 	a := &testHandler{t: t}
 	b := &testHandler{t: t}
@@ -126,6 +127,38 @@ type testHandler struct {
 	writer *io.PipeWriter
 	stream jsonrpc2.Stream
 	*jsonrpc2.Conn
+=======
+func prepare(ctx context.Context, t *testing.T, withHeaders bool) (*jsonrpc2.Conn, *jsonrpc2.Conn) {
+	aR, bW := io.Pipe()
+	bR, aW := io.Pipe()
+	a := run(ctx, t, withHeaders, aR, aW)
+	b := run(ctx, t, withHeaders, bR, bW)
+	return a, b
+}
+
+func run(ctx context.Context, t *testing.T, withHeaders bool, r io.ReadCloser, w io.WriteCloser) *jsonrpc2.Conn {
+	var stream jsonrpc2.Stream
+	if withHeaders {
+		stream = jsonrpc2.NewHeaderStream(r, w)
+	} else {
+		stream = jsonrpc2.NewStream(r, w)
+	}
+	conn := jsonrpc2.NewConn(stream)
+	conn.Handler = handle
+	if *logRPC {
+		conn.Logger = jsonrpc2.Log
+	}
+	go func() {
+		defer func() {
+			r.Close()
+			w.Close()
+		}()
+		if err := conn.Run(ctx); err != nil {
+			t.Fatalf("Stream failed: %v", err)
+		}
+	}()
+	return conn
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 func handle(ctx context.Context, c *jsonrpc2.Conn, r *jsonrpc2.Request) {

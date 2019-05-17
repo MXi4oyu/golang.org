@@ -28,6 +28,12 @@
 //	-cpuprofile file
 //		Write a CPU profile of the compiler to file.
 //
+<<<<<<< HEAD
+=======
+//	-go path
+//		Path to "go" command (default "go").
+//
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //	-memprofile file
 //		Write a memory profile of the compiler to file.
 //
@@ -37,12 +43,22 @@
 //	-obj
 //		Report object file statistics.
 //
+<<<<<<< HEAD
 //  -pkg
+=======
+//	-pkg pkg
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 //		Benchmark compiling a single package.
 //
 //	-run regexp
 //		Only run benchmarks with names matching regexp.
 //
+<<<<<<< HEAD
+=======
+//	-short
+//		Skip long-running benchmarks.
+//
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 // Although -cpuprofile and -memprofile are intended to write a
 // combined profile for all the executed benchmarks to file,
 // today they write only the profile for the last benchmark executed.
@@ -329,7 +345,15 @@ func runBuild(name, dir string, count int) {
 		}
 
 		if *flagMemprofile != "" {
+<<<<<<< HEAD
 			if err := ioutil.WriteFile(*flagMemprofile, out, 0666); err != nil {
+=======
+			outpath := *flagMemprofile
+			if *flagCount != 1 {
+				outpath = fmt.Sprintf("%s_%d", outpath, count)
+			}
+			if err := ioutil.WriteFile(outpath, out, 0666); err != nil {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 				log.Print(err)
 			}
 		}

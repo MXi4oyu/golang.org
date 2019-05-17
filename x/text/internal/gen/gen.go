@@ -31,6 +31,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+<<<<<<< HEAD
+=======
+	"regexp"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"strings"
 	"sync"
 	"unicode"
@@ -83,13 +87,20 @@ func CLDRVersion() string {
 }
 
 var tags = []struct{ version, buildTags string }{
+<<<<<<< HEAD
 	{"10.0.0", "go1.10"},
 	{"", "!go1.10"},
+=======
+	{"9.0.0", "!go1.10"},
+	{"10.0.0", "go1.10,!go1.13"},
+	{"11.0.0", "go1.13"},
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // buildTags reports the build tags used for the current Unicode version.
 func buildTags() string {
 	v := UnicodeVersion()
+<<<<<<< HEAD
 	for _, x := range tags {
 		// We should do a numeric comparison, but including the collate package
 		// would create an import cycle. We approximate it by assuming that
@@ -102,6 +113,15 @@ func buildTags() string {
 		}
 	}
 	return tags[0].buildTags
+=======
+	for _, e := range tags {
+		if e.version == v {
+			return e.buildTags
+		}
+	}
+	log.Fatalf("Unknown build tags for Unicode version %q.", v)
+	return ""
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // IsLocal reports whether data files are available locally.
@@ -269,12 +289,37 @@ func WriteGoFile(filename, pkg string, b []byte) {
 	}
 }
 
+<<<<<<< HEAD
 func insertVersion(filename, version string) string {
+=======
+func fileToPattern(filename string) string {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	suffix := ".go"
 	if strings.HasSuffix(filename, "_test.go") {
 		suffix = "_test.go"
 	}
+<<<<<<< HEAD
 	return fmt.Sprint(filename[:len(filename)-len(suffix)], version, suffix)
+=======
+	prefix := filename[:len(filename)-len(suffix)]
+	return fmt.Sprint(prefix, "%s", suffix)
+}
+
+func updateBuildTags(pattern string) {
+	for _, t := range tags {
+		oldFile := fmt.Sprintf(pattern, t.version)
+		b, err := ioutil.ReadFile(oldFile)
+		if err != nil {
+			continue
+		}
+		build := fmt.Sprintf("// +build %s", t.buildTags)
+		b = regexp.MustCompile(`// \+build .*`).ReplaceAll(b, []byte(build))
+		err = ioutil.WriteFile(oldFile, b, 0644)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 }
 
 // WriteVersionedGoFile prepends a standard file comment, adds build tags to
@@ -282,16 +327,27 @@ func insertVersion(filename, version string) string {
 // the given bytes, applies gofmt, and writes them to a file with the given
 // name. It will call log.Fatal if there are any errors.
 func WriteVersionedGoFile(filename, pkg string, b []byte) {
+<<<<<<< HEAD
 	tags := buildTags()
 	if tags != "" {
 		filename = insertVersion(filename, UnicodeVersion())
 	}
+=======
+	pattern := fileToPattern(filename)
+	updateBuildTags(pattern)
+	filename = fmt.Sprintf(pattern, UnicodeVersion())
+
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	w, err := os.Create(filename)
 	if err != nil {
 		log.Fatalf("Could not create file %s: %v", filename, err)
 	}
 	defer w.Close()
+<<<<<<< HEAD
 	if _, err = WriteGo(w, pkg, tags, b); err != nil {
+=======
+	if _, err = WriteGo(w, pkg, buildTags(), b); err != nil {
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		log.Fatalf("Error writing file %s: %v", filename, err)
 	}
 }

@@ -109,7 +109,16 @@ func main() {
 								use = use || a.Value != "person"
 							}
 							if a.Name.Local == "data" && use {
+<<<<<<< HEAD
 								attr = a.Value + " "
+=======
+								// Patch up URLs to use https. From some links, the
+								// https version is different from the http one.
+								s := a.Value
+								s = strings.Replace(s, "http://", "https://", -1)
+								s = strings.Replace(s, "/unicode/", "/", -1)
+								attr = s + " "
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 							}
 						}
 					}

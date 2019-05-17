@@ -56,6 +56,7 @@ func testPacketCipher(t *testing.T, cipher, mac string) {
 	want := "bla bla"
 	input := []byte(want)
 	buf := &bytes.Buffer{}
+<<<<<<< HEAD
 	if err := client.writePacket(0, buf, rand.Reader, input); err != nil {
 		t.Fatalf("writePacket(%q, %q): %v", cipher, mac, err)
 	}
@@ -63,6 +64,15 @@ func testPacketCipher(t *testing.T, cipher, mac string) {
 	packet, err := server.readPacket(0, buf)
 	if err != nil {
 		t.Fatalf("readPacket(%q, %q): %v", cipher, mac, err)
+=======
+	if err := client.writeCipherPacket(0, buf, rand.Reader, input); err != nil {
+		t.Fatalf("writeCipherPacket(%q, %q): %v", cipher, mac, err)
+	}
+
+	packet, err := server.readCipherPacket(0, buf)
+	if err != nil {
+		t.Fatalf("readCipherPacket(%q, %q): %v", cipher, mac, err)
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	}
 
 	if string(packet) != want {
@@ -85,8 +95,8 @@ func TestCBCOracleCounterMeasure(t *testing.T) {
 	want := "bla bla"
 	input := []byte(want)
 	buf := &bytes.Buffer{}
-	if err := client.writePacket(0, buf, rand.Reader, input); err != nil {
-		t.Errorf("writePacket: %v", err)
+	if err := client.writeCipherPacket(0, buf, rand.Reader, input); err != nil {
+		t.Errorf("writeCipherPacket: %v", err)
 	}
 
 	packetSize := buf.Len()
@@ -106,9 +116,9 @@ func TestCBCOracleCounterMeasure(t *testing.T) {
 		fresh.Bytes()[i] ^= 0x01
 
 		before := fresh.Len()
-		_, err = server.readPacket(0, fresh)
+		_, err = server.readCipherPacket(0, fresh)
 		if err == nil {
-			t.Errorf("corrupt byte %d: readPacket succeeded ", i)
+			t.Errorf("corrupt byte %d: readCipherPacket succeeded ", i)
 			continue
 		}
 		if _, ok := err.(cbcError); !ok {

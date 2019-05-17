@@ -14,6 +14,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+<<<<<<< HEAD
+=======
+	"runtime"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"strings"
 	"testing"
 
@@ -26,6 +30,12 @@ var genFiles = flag.Bool("gen", false, "generate output files instead of compari
 var setHelper = func(t *testing.T) {}
 
 func TestFullCycle(t *testing.T) {
+<<<<<<< HEAD
+=======
+	if runtime.GOOS == "android" {
+		t.Skip("cannot load outside packages on android")
+	}
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	const path = "./testdata"
 	dirs, err := ioutil.ReadDir(path)
 	if err != nil {

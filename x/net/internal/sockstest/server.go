@@ -10,8 +10,13 @@ import (
 	"io"
 	"net"
 
+<<<<<<< HEAD
 	"golang.org/x/net/internal/nettest"
 	"golang.org/x/net/internal/socks"
+=======
+	"golang.org/x/net/internal/socks"
+	"golang.org/x/net/nettest"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 )
 
 // An AuthRequest represents an authentication request.

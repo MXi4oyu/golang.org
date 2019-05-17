@@ -7,5 +7,8 @@ func unclosedIf() {
 		var myUnclosedIf string              //@myUnclosedIf
 		fmt.Printf("s = %v\n", myUnclosedIf) //@godef("my", myUnclosedIf)
 }
+<<<<<<< HEAD
 //@diag(EOF, "expected ';', found 'EOF'")
 //@diag(EOF, "expected '}', found 'EOF'")
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a

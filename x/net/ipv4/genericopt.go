@@ -11,7 +11,11 @@ func (c *genericOpt) TOS() (int, error) {
 	}
 	so, ok := sockOpts[ssoTOS]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv4/genericopt.go
 		return 0, errOpNoSupport
+=======
+		return 0, errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv4/genericopt.go
 	}
 	return so.GetInt(c.Conn)
 }
@@ -24,7 +28,11 @@ func (c *genericOpt) SetTOS(tos int) error {
 	}
 	so, ok := sockOpts[ssoTOS]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv4/genericopt.go
 		return errOpNoSupport
+=======
+		return errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv4/genericopt.go
 	}
 	return so.SetInt(c.Conn, tos)
 }
@@ -36,7 +44,11 @@ func (c *genericOpt) TTL() (int, error) {
 	}
 	so, ok := sockOpts[ssoTTL]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv4/genericopt.go
 		return 0, errOpNoSupport
+=======
+		return 0, errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv4/genericopt.go
 	}
 	return so.GetInt(c.Conn)
 }
@@ -49,7 +61,11 @@ func (c *genericOpt) SetTTL(ttl int) error {
 	}
 	so, ok := sockOpts[ssoTTL]
 	if !ok {
+<<<<<<< HEAD:x/net/ipv4/genericopt.go
 		return errOpNoSupport
+=======
+		return errNotImplemented
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/net/ipv4/genericopt.go
 	}
 	return so.SetInt(c.Conn, ttl)
 }

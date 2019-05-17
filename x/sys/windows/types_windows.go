@@ -7,6 +7,7 @@ package windows
 import "syscall"
 
 const (
+<<<<<<< HEAD:x/sys/windows/types_windows.go
 	// Windows errors.
 	ERROR_FILE_NOT_FOUND         syscall.Errno = 2
 	ERROR_PATH_NOT_FOUND         syscall.Errno = 3
@@ -34,6 +35,8 @@ const (
 )
 
 const (
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/sys/windows/types_windows.go
 	// Invented values to support what package os expects.
 	O_RDONLY   = 0x00000
 	O_WRONLY   = 0x00001
@@ -126,9 +129,19 @@ const (
 	OPEN_ALWAYS       = 4
 	TRUNCATE_EXISTING = 5
 
-	FILE_FLAG_OPEN_REPARSE_POINT = 0x00200000
-	FILE_FLAG_BACKUP_SEMANTICS   = 0x02000000
-	FILE_FLAG_OVERLAPPED         = 0x40000000
+	FILE_FLAG_OPEN_REQUIRING_OPLOCK = 0x00040000
+	FILE_FLAG_FIRST_PIPE_INSTANCE   = 0x00080000
+	FILE_FLAG_OPEN_NO_RECALL        = 0x00100000
+	FILE_FLAG_OPEN_REPARSE_POINT    = 0x00200000
+	FILE_FLAG_SESSION_AWARE         = 0x00800000
+	FILE_FLAG_POSIX_SEMANTICS       = 0x01000000
+	FILE_FLAG_BACKUP_SEMANTICS      = 0x02000000
+	FILE_FLAG_DELETE_ON_CLOSE       = 0x04000000
+	FILE_FLAG_SEQUENTIAL_SCAN       = 0x08000000
+	FILE_FLAG_RANDOM_ACCESS         = 0x10000000
+	FILE_FLAG_NO_BUFFERING          = 0x20000000
+	FILE_FLAG_OVERLAPPED            = 0x40000000
+	FILE_FLAG_WRITE_THROUGH         = 0x80000000
 
 	HANDLE_FLAG_INHERIT    = 0x00000001
 	STARTF_USESTDHANDLES   = 0x00000100
@@ -167,7 +180,6 @@ const (
 	IGNORE                = 0
 	INFINITE              = 0xffffffff
 
-	WAIT_TIMEOUT   = 258
 	WAIT_ABANDONED = 0x00000080
 	WAIT_OBJECT_0  = 0x00000000
 	WAIT_FAILED    = 0xFFFFFFFF
@@ -402,12 +414,15 @@ const (
 	CERT_CHAIN_POLICY_EV                = 8
 	CERT_CHAIN_POLICY_SSL_F12           = 9
 
+<<<<<<< HEAD:x/sys/windows/types_windows.go
 	CERT_E_EXPIRED       = 0x800B0101
 	CERT_E_ROLE          = 0x800B0103
 	CERT_E_PURPOSE       = 0x800B0106
 	CERT_E_UNTRUSTEDROOT = 0x800B0109
 	CERT_E_CN_NO_MATCH   = 0x800B010F
 
+=======
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a:x/sys/windows/types_windows.go
 	/* AuthType values for SSLExtraCertChainPolicyPara struct */
 	AUTHTYPE_CLIENT = 1
 	AUTHTYPE_SERVER = 2
@@ -847,10 +862,6 @@ const (
 	DNS_TYPE_WINS    = 0xff01
 	DNS_TYPE_WINSR   = 0xff02
 	DNS_TYPE_NBSTAT  = 0xff01
-)
-
-const (
-	DNS_INFO_NO_RECORDS = 0x251D
 )
 
 const (

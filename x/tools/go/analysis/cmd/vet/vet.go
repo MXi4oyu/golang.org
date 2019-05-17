@@ -20,11 +20,19 @@ import (
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
 	"golang.org/x/tools/go/analysis/passes/assign"
 	"golang.org/x/tools/go/analysis/passes/atomic"
+<<<<<<< HEAD
+=======
+	"golang.org/x/tools/go/analysis/passes/atomicalign"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"golang.org/x/tools/go/analysis/passes/bools"
 	"golang.org/x/tools/go/analysis/passes/buildtag"
 	"golang.org/x/tools/go/analysis/passes/cgocall"
 	"golang.org/x/tools/go/analysis/passes/composite"
 	"golang.org/x/tools/go/analysis/passes/copylock"
+<<<<<<< HEAD
+=======
+	"golang.org/x/tools/go/analysis/passes/errorsas"
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 	"golang.org/x/tools/go/analysis/passes/httpresponse"
 	"golang.org/x/tools/go/analysis/passes/loopclosure"
 	"golang.org/x/tools/go/analysis/passes/lostcancel"
@@ -51,11 +59,19 @@ func main() {
 		asmdecl.Analyzer,
 		assign.Analyzer,
 		atomic.Analyzer,
+<<<<<<< HEAD
+=======
+		atomicalign.Analyzer,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		bools.Analyzer,
 		buildtag.Analyzer,
 		cgocall.Analyzer,
 		composite.Analyzer,
 		copylock.Analyzer,
+<<<<<<< HEAD
+=======
+		errorsas.Analyzer,
+>>>>>>> bd25a1f6d07d2d464980e6a8576c1ed59bb3950a
 		httpresponse.Analyzer,
 		loopclosure.Analyzer,
 		lostcancel.Analyzer,
