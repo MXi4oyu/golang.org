@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 // This package provides Rapid Type Analysis (RTA) for Go, a fast
 // algorithm for call graph construction and discovery of reachable code
 // (and hence dead code) and runtime types.  The algorithm was first
@@ -186,7 +184,7 @@ func (r *rta) visitDynCall(site ssa.CallInstruction) {
 	r.dynCallSites.Set(S, append(sites, site))
 
 	// For each function of signature S that we know is address-taken,
-	// mark it reachable.  We'll add the callgraph edges later.
+	// add an edge and mark it reachable.
 	funcs, _ := r.addrTakenFuncsBySig.At(S).(map[*ssa.Function]bool)
 	for g := range funcs {
 		r.addEdge(site, g, true)

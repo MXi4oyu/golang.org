@@ -7,10 +7,6 @@
 // http://plan9.bell-labs.com/magic/man2html/6/font
 package plan9font // import "golang.org/x/image/font/plan9font"
 
-// TODO: have a subface use an *image.Alpha instead of plan9Image implementing
-// the image.Image interface? The image/draw code has a fast path for
-// *image.Alpha masks.
-
 import (
 	"bytes"
 	"errors"
@@ -54,16 +50,31 @@ func parseFontchars(p []byte) []fontchar {
 
 // subface implements font.Face for a Plan 9 subfont.
 type subface struct {
-	firstRune rune        // First rune in the subfont.
-	n         int         // Number of characters in the subfont.
-	height    int         // Inter-line spacing.
-	ascent    int         // Height above the baseline.
-	fontchars []fontchar  // Character descriptions.
-	img       *plan9Image // Image holding the glyphs.
+	firstRune rune         // First rune in the subfont.
+	n         int          // Number of characters in the subfont.
+	height    int          // Inter-line spacing.
+	ascent    int          // Height above the baseline.
+	fontchars []fontchar   // Character descriptions.
+	img       *image.Alpha // Image holding the glyphs.
 }
 
 func (f *subface) Close() error                   { return nil }
 func (f *subface) Kern(r0, r1 rune) fixed.Int26_6 { return 0 }
+
+func (f *subface) Metrics() font.Metrics {
+	// Approximate XHeight with the ascent of lowercase 'x'.
+	xbounds, _, _ := f.GlyphBounds('x')
+	// The same applies to CapHeight, using the uppercase 'H'.
+	hbounds, _, _ := f.GlyphBounds('H')
+	return font.Metrics{
+		Height:     fixed.I(f.height),
+		Ascent:     fixed.I(f.ascent),
+		Descent:    fixed.I(f.height - f.ascent),
+		XHeight:    -xbounds.Min.Y,
+		CapHeight:  -hbounds.Min.Y,
+		CaretSlope: image.Point{X: 0, Y: 1},
+	}
+}
 
 func (f *subface) Glyph(dot fixed.Point26_6, r rune) (
 	dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
@@ -139,6 +150,19 @@ type face struct {
 func (f *face) Close() error                   { return nil }
 func (f *face) Kern(r0, r1 rune) fixed.Int26_6 { return 0 }
 
+func (f *face) Metrics() font.Metrics {
+	xbounds, _, _ := f.GlyphBounds('x')
+	hbounds, _, _ := f.GlyphBounds('H')
+	return font.Metrics{
+		Height:     fixed.I(f.height),
+		Ascent:     fixed.I(f.ascent),
+		Descent:    fixed.I(f.height - f.ascent),
+		XHeight:    -xbounds.Min.Y,
+		CapHeight:  -hbounds.Min.Y,
+		CaretSlope: image.Point{X: 0, Y: 1},
+	}
+}
+
 func (f *face) Glyph(dot fixed.Point26_6, r rune) (
 	dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
 
@@ -162,6 +186,31 @@ func (f *face) GlyphAdvance(r rune) (advance fixed.Int26_6, ok bool) {
 	return 0, false
 }
 
+// For subfont files, if reading the given file name fails, we try appending
+// ".n" where n is the log2 of the grayscale depth in bits (so at most 3) and
+// then work down to 0. This was done in Plan 9 when antialiased fonts were
+// introduced so that the 1-bit displays could keep using the 1-bit forms but
+// higher depth displays could use the antialiased forms.
+var subfontSuffixes = [...]string{
+	"",
+	".3",
+	".2",
+	".1",
+	".0",
+}
+
+func (f *face) readSubfontFile(name string) ([]byte, error) {
+	var firstErr error
+	for _, suffix := range subfontSuffixes {
+		if b, err := f.readFile(name + suffix); err == nil {
+			return b, nil
+		} else if firstErr == nil {
+			firstErr = err
+		}
+	}
+	return nil, firstErr
+}
+
 func (f *face) subface(r rune) (*subface, rune) {
 	// Fall back on U+FFFD if we can't find r.
 	for _, rr := range [2]rune{r, '\ufffd'} {
@@ -176,7 +225,7 @@ func (f *face) subface(r rune) (*subface, rune) {
 				continue
 			}
 			if x.subface == nil {
-				data, err := f.readFile(x.relFilename)
+				data, err := f.readSubfontFile(x.relFilename)
 				if err != nil {
 					log.Printf("plan9font: couldn't read subfont %q: %v", x.relFilename, err)
 					x.bad = true
@@ -284,13 +333,25 @@ func ParseSubfont(data []byte, firstRune rune) (font.Face, error) {
 	if len(data) != 6*(n+1) {
 		return nil, errors.New("plan9font: invalid subfont: data length mismatch")
 	}
+
+	// Convert from plan9Image to image.Alpha, as the standard library's
+	// image/draw package works best when glyph masks are of that type.
+	img := image.NewAlpha(m.Bounds())
+	for y := img.Rect.Min.Y; y < img.Rect.Max.Y; y++ {
+		i := img.PixOffset(img.Rect.Min.X, y)
+		for x := img.Rect.Min.X; x < img.Rect.Max.X; x++ {
+			img.Pix[i] = m.at(x, y)
+			i++
+		}
+	}
+
 	return &subface{
 		firstRune: firstRune,
 		n:         n,
 		height:    height,
 		ascent:    ascent,
 		fontchars: parseFontchars(data),
-		img:       m,
+		img:       img,
 	}, nil
 }
 
@@ -324,28 +385,33 @@ func (m *plan9Image) ColorModel() color.Model { return color.AlphaModel }
 
 func (m *plan9Image) At(x, y int) color.Color {
 	if (image.Point{x, y}).In(m.rect) {
-		b := m.pix[m.byteoffset(x, y)]
-		switch m.depth {
-		case 1:
-			// CGrey, 1.
-			mask := uint8(1 << uint8(7-x&7))
-			if (b & mask) != 0 {
-				return color.Alpha{0xff}
-			}
-			return color.Alpha{0x00}
-		case 2:
-			// CGrey, 2.
-			shift := uint(x&3) << 1
-			// Place pixel at top of word.
-			y := b << shift
-			y &= 0xc0
-			// Replicate throughout.
-			y |= y >> 2
-			y |= y >> 4
-			return color.Alpha{y}
-		}
+		return color.Alpha{m.at(x, y)}
 	}
 	return color.Alpha{0x00}
+}
+
+func (m *plan9Image) at(x, y int) uint8 {
+	b := m.pix[m.byteoffset(x, y)]
+	switch m.depth {
+	case 1:
+		// CGrey, 1.
+		mask := uint8(1 << uint8(7-x&7))
+		if (b & mask) != 0 {
+			return 0xff
+		}
+		return 0
+	case 2:
+		// CGrey, 2.
+		shift := uint(x&3) << 1
+		// Place pixel at top of word.
+		y := b << shift
+		y &= 0xc0
+		// Replicate throughout.
+		y |= y >> 2
+		y |= y >> 4
+		return y
+	}
+	return 0
 }
 
 var compressed = []byte("compressed\n")

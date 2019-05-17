@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 // Package analysis performs type and pointer analysis
 // and generates mark-up for the Go source view.
 //
@@ -301,7 +299,7 @@ type analysis struct {
 	result    *Result
 	prog      *ssa.Program
 	ops       []chanOp       // all channel ops in program
-	allNamed  []*types.Named // all named types in the program
+	allNamed  []*types.Named // all "defined" (formerly "named") types in the program
 	ptaConfig pointer.Config
 	path2url  map[string]string // maps openable path to godoc file URL (/src/fmt/print.go)
 	pcgs      map[*ssa.Package]*packageCallGraph
@@ -477,7 +475,9 @@ func Run(pta bool, result *Result) {
 	for _, info := range iprog.AllPackages {
 		for _, obj := range info.Defs {
 			if obj, ok := obj.(*types.TypeName); ok {
-				a.allNamed = append(a.allNamed, obj.Type().(*types.Named))
+				if named, ok := obj.Type().(*types.Named); ok {
+					a.allNamed = append(a.allNamed, named)
+				}
 			}
 		}
 	}

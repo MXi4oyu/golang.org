@@ -5,31 +5,30 @@
 package japanese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/internal"
+	"golang.org/x/text/encoding/internal/identifier"
 	"golang.org/x/text/transform"
 )
 
 // ISO2022JP is the ISO-2022-JP encoding.
-var ISO2022JP encoding.Encoding = iso2022JP{}
+var ISO2022JP encoding.Encoding = &iso2022JP
 
-type iso2022JP struct{}
+var iso2022JP = internal.Encoding{
+	internal.FuncEncoding{iso2022JPNewDecoder, iso2022JPNewEncoder},
+	"ISO-2022-JP",
+	identifier.ISO2022JP,
+}
 
-func (iso2022JP) NewDecoder() transform.Transformer {
+func iso2022JPNewDecoder() transform.Transformer {
 	return new(iso2022JPDecoder)
 }
 
-func (iso2022JP) NewEncoder() transform.Transformer {
+func iso2022JPNewEncoder() transform.Transformer {
 	return new(iso2022JPEncoder)
 }
-
-func (iso2022JP) String() string {
-	return "ISO-2022-JP"
-}
-
-var errInvalidISO2022JP = errors.New("japanese: invalid ISO-2022-JP encoding")
 
 const (
 	asciiState = iota
@@ -48,45 +47,51 @@ func (d *iso2022JPDecoder) Reset() {
 
 func (d *iso2022JPDecoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err error) {
 	r, size := rune(0), 0
-loop:
 	for ; nSrc < len(src); nSrc += size {
 		c0 := src[nSrc]
 		if c0 >= utf8.RuneSelf {
-			err = errInvalidISO2022JP
-			break loop
+			r, size = '\ufffd', 1
+			goto write
 		}
 
 		if c0 == asciiEsc {
 			if nSrc+2 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					return nDst, nSrc, transform.ErrShortSrc
+				}
+				// TODO: is it correct to only skip 1??
+				r, size = '\ufffd', 1
+				goto write
 			}
 			size = 3
 			c1 := src[nSrc+1]
 			c2 := src[nSrc+2]
 			switch {
-			case c1 == '$' && (c2 == '@' || c2 == 'B'):
+			case c1 == '$' && (c2 == '@' || c2 == 'B'): // 0x24 {0x40, 0x42}
 				*d = jis0208State
 				continue
-			case c1 == '$' && c2 == '(':
+			case c1 == '$' && c2 == '(': // 0x24 0x28
 				if nSrc+3 >= len(src) {
-					err = transform.ErrShortSrc
-					break loop
+					if !atEOF {
+						return nDst, nSrc, transform.ErrShortSrc
+					}
+					r, size = '\ufffd', 1
+					goto write
 				}
 				size = 4
-				if src[nSrc]+3 == 'D' {
+				if src[nSrc+3] == 'D' {
 					*d = jis0212State
 					continue
 				}
-			case c1 == '(' && (c2 == 'B' || c2 == 'J'):
+			case c1 == '(' && (c2 == 'B' || c2 == 'J'): // 0x28 {0x42, 0x4A}
 				*d = asciiState
 				continue
-			case c1 == '(' && c2 == 'I':
+			case c1 == '(' && c2 == 'I': // 0x28 0x49
 				*d = katakanaState
 				continue
 			}
-			err = errInvalidISO2022JP
-			break loop
+			r, size = '\ufffd', 1
+			goto write
 		}
 
 		switch *d {
@@ -95,8 +100,8 @@ loop:
 
 		case katakanaState:
 			if c0 < 0x21 || 0x60 <= c0 {
-				err = errInvalidISO2022JP
-				break loop
+				r, size = '\ufffd', 1
+				goto write
 			}
 			r, size = rune(c0)+(0xff61-0x21), 1
 
@@ -104,11 +109,14 @@ loop:
 			if c0 == 0x0a {
 				*d = asciiState
 				r, size = rune(c0), 1
-				break
+				goto write
 			}
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					return nDst, nSrc, transform.ErrShortSrc
+				}
+				r, size = '\ufffd', 1
+				goto write
 			}
 			size = 2
 			c1 := src[nSrc+1]
@@ -119,21 +127,18 @@ loop:
 				r = rune(jis0212Decode[i])
 			} else {
 				r = '\ufffd'
-				break
+				goto write
 			}
 			if r == 0 {
 				r = '\ufffd'
 			}
 		}
 
+	write:
 		if nDst+utf8.RuneLen(r) > len(dst) {
-			err = transform.ErrShortDst
-			break loop
+			return nDst, nSrc, transform.ErrShortDst
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidISO2022JP
 	}
 	return nDst, nSrc, err
 }
@@ -152,9 +157,6 @@ func (e *iso2022JPEncoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc in
 		// Decode a 1-byte rune.
 		if r < utf8.RuneSelf {
 			size = 1
-			if r == asciiEsc {
-				r = encoding.ASCIISub
-			}
 
 		} else {
 			// Decode a multi-byte rune.
@@ -207,7 +209,22 @@ func (e *iso2022JPEncoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc in
 					goto writeJIS
 				}
 			}
-			r = encoding.ASCIISub
+
+			// Switch back to ASCII state in case of error so that an ASCII
+			// replacement character can be written in the correct state.
+			if *e != asciiState {
+				if nDst+3 > len(dst) {
+					err = transform.ErrShortDst
+					break
+				}
+				*e = asciiState
+				dst[nDst+0] = asciiEsc
+				dst[nDst+1] = '('
+				dst[nDst+2] = 'B'
+				nDst += 3
+			}
+			err = internal.ErrASCIIReplacement
+			break
 		}
 
 		if *e != asciiState {
@@ -266,6 +283,17 @@ func (e *iso2022JPEncoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc in
 		dst[nDst] = uint8(r - (0xff61 - 0x21))
 		nDst++
 		continue
+	}
+	if atEOF && err == nil && *e != asciiState {
+		if nDst+3 > len(dst) {
+			err = transform.ErrShortDst
+		} else {
+			*e = asciiState
+			dst[nDst+0] = asciiEsc
+			dst[nDst+1] = '('
+			dst[nDst+2] = 'B'
+			nDst += 3
+		}
 	}
 	return nDst, nSrc, err
 }

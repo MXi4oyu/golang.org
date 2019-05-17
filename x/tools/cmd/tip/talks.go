@@ -8,22 +8,23 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 )
 
-type talksBuilder struct {
-}
+type talksBuilder struct{}
 
 func (b talksBuilder) Signature(heads map[string]string) string {
 	return heads["talks"]
 }
 
-const talksToolsRev = "f19f04f5492745c70cc5906b15b125b7a3d3b1a3"
+const talksToolsRev = "8cab8a1319f0be9798e7fe78b15da75e5f94b2e9"
 
-func (b talksBuilder) Init(dir, hostport string, heads map[string]string) (*exec.Cmd, error) {
+func (b talksBuilder) Init(logger *log.Logger, dir, hostport string, heads map[string]string) (*exec.Cmd, error) {
+	// TODO: use logger
 	toolsDir := filepath.Join(dir, "gopath/src/golang.org/x/tools")
 	if err := checkout(repoURL+"tools", talksToolsRev, toolsDir); err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func (b talksBuilder) Init(dir, hostport string, heads map[string]string) (*exec
 	goPath := filepath.Join(dir, "gopath")
 	presentPath := "golang.org/x/tools/cmd/present"
 	install := exec.Command(goBin, "install", "-tags=appenginevm", presentPath)
-	install.Env = []string{"GOROOT=" + goDir, "GOPATH=" + goPath}
+	install.Env = append(os.Environ(), "GOROOT="+goDir, "GOPATH="+goPath)
 	if err := runErr(install); err != nil {
 		return nil, err
 	}

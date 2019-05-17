@@ -5,32 +5,23 @@
 package japanese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/internal"
+	"golang.org/x/text/encoding/internal/identifier"
 	"golang.org/x/text/transform"
 )
 
 // ShiftJIS is the Shift JIS encoding, also known as Code Page 932 and
 // Windows-31J.
-var ShiftJIS encoding.Encoding = shiftJIS{}
+var ShiftJIS encoding.Encoding = &shiftJIS
 
-type shiftJIS struct{}
-
-func (shiftJIS) NewDecoder() transform.Transformer {
-	return shiftJISDecoder{}
+var shiftJIS = internal.Encoding{
+	&internal.SimpleEncoding{shiftJISDecoder{}, shiftJISEncoder{}},
+	"Shift JIS",
+	identifier.ShiftJIS,
 }
-
-func (shiftJIS) NewEncoder() transform.Transformer {
-	return shiftJISEncoder{}
-}
-
-func (shiftJIS) String() string {
-	return "Shift JIS"
-}
-
-var errInvalidShiftJIS = errors.New("japanese: invalid Shift JIS encoding")
 
 type shiftJISDecoder struct{ transform.NopResetter }
 
@@ -45,7 +36,7 @@ loop:
 		case 0xa1 <= c0 && c0 < 0xe0:
 			r, size = rune(c0)+(0xff61-0xa1), 1
 
-		case (0x81 <= c0 && c0 < 0xa0) || (0xe0 <= c0 && c0 < 0xf0):
+		case (0x81 <= c0 && c0 < 0xa0) || (0xe0 <= c0 && c0 < 0xfd):
 			if c0 <= 0x9f {
 				c0 -= 0x70
 			} else {
@@ -54,28 +45,32 @@ loop:
 			c0 = 2*c0 - 0x21
 
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = '\ufffd', 1
+				goto write
 			}
 			c1 := src[nSrc+1]
 			switch {
 			case c1 < 0x40:
-				err = errInvalidShiftJIS
-				break loop
+				r, size = '\ufffd', 1 // c1 is ASCII so output on next round
+				goto write
 			case c1 < 0x7f:
 				c0--
 				c1 -= 0x40
 			case c1 == 0x7f:
-				err = errInvalidShiftJIS
-				break loop
+				r, size = '\ufffd', 1 // c1 is ASCII so output on next round
+				goto write
 			case c1 < 0x9f:
 				c0--
 				c1 -= 0x41
 			case c1 < 0xfd:
 				c1 -= 0x9f
 			default:
-				err = errInvalidShiftJIS
-				break loop
+				r, size = '\ufffd', 2
+				goto write
 			}
 			r, size = '\ufffd', 2
 			if i := int(c0)*94 + int(c1); i < len(jis0208Decode) {
@@ -85,19 +80,18 @@ loop:
 				}
 			}
 
-		default:
-			err = errInvalidShiftJIS
-			break loop
-		}
+		case c0 == 0x80:
+			r, size = 0x80, 1
 
+		default:
+			r, size = '\ufffd', 1
+		}
+	write:
 		if nDst+utf8.RuneLen(r) > len(dst) {
 			err = transform.ErrShortDst
 			break loop
 		}
 		nDst += utf8.EncodeRune(dst[nDst:], r)
-	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidShiftJIS
 	}
 	return nDst, nSrc, err
 }
@@ -158,7 +152,8 @@ loop:
 					goto write2
 				}
 			}
-			r = encoding.ASCIISub
+			err = internal.ErrASCIIReplacement
+			break
 		}
 
 	write1:

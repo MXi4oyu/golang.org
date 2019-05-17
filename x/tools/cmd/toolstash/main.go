@@ -147,7 +147,7 @@ Examples:
 	toolstash compile x.go
 	toolstash -cmp compile x.go
 
-For details, godoc rsc.io/toolstash
+For details, godoc golang.org/x/tools/cmd/toolstash
 `
 
 func usage() {
@@ -156,6 +156,7 @@ func usage() {
 }
 
 var (
+	goCmd   = flag.String("go", "go", "path to \"go\" command")
 	norun   = flag.Bool("n", false, "print but do not run commands")
 	verbose = flag.Bool("v", false, "print commands being run")
 	cmp     = flag.Bool("cmp", false, "compare tool object files")
@@ -173,9 +174,13 @@ var (
 	binDir   string
 )
 
-func canCmp(name string) bool {
+func canCmp(name string, args []string) bool {
 	switch name {
-	case "compile", "link", "asm":
+	case "asm", "compile", "link":
+		if len(args) == 1 && (args[0] == "-V" || strings.HasPrefix(args[0], "-V=")) {
+			// cmd/go uses "compile -V=full" to query the tool's build ID.
+			return false
+		}
 		return true
 	}
 	return len(name) == 2 && '0' <= name[0] && name[0] <= '9' && (name[1] == 'a' || name[1] == 'g' || name[1] == 'l')
@@ -199,7 +204,11 @@ func main() {
 		usage()
 	}
 
-	goroot = runtime.GOROOT()
+	s, err := exec.Command(*goCmd, "env", "GOROOT").CombinedOutput()
+	if err != nil {
+		log.Fatalf("%s env GOROOT: %v", *goCmd, err)
+	}
+	goroot = strings.TrimSpace(string(s))
 	toolDir = filepath.Join(goroot, fmt.Sprintf("pkg/tool/%s_%s", runtime.GOOS, runtime.GOARCH))
 	stashDir = filepath.Join(goroot, "pkg/toolstash")
 
@@ -219,10 +228,7 @@ func main() {
 	}
 
 	tool = cmd[0]
-	if i := strings.LastIndex(tool, "/"); i >= 0 {
-		tool = tool[i+1:]
-	}
-	if i := strings.LastIndex(tool, `\`); i >= 0 {
+	if i := strings.LastIndexAny(tool, `/\`); i >= 0 {
 		tool = tool[i+1:]
 	}
 
@@ -233,7 +239,7 @@ func main() {
 			os.Exit(2)
 		}
 
-		if *cmp && canCmp(tool) {
+		if *cmp && canCmp(tool, cmd[1:]) {
 			compareTool()
 			return
 		}
@@ -251,7 +257,7 @@ func main() {
 	xcmd.Stdin = os.Stdin
 	xcmd.Stdout = os.Stdout
 	xcmd.Stderr = os.Stderr
-	err := xcmd.Run()
+	err = xcmd.Run()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -275,14 +281,35 @@ func compareTool() {
 		log.Fatalf("unknown tool %s", tool)
 
 	case tool == "compile" || strings.HasSuffix(tool, "g"): // compiler
-		cmdN := append([]string{cmd[0], "-N"}, cmd[1:]...)
+		useDashN := true
+		dashcIndex := -1
+		for i, s := range cmd {
+			if s == "-+" {
+				// Compiling runtime. Don't use -N.
+				useDashN = false
+			}
+			if strings.HasPrefix(s, "-c=") {
+				dashcIndex = i
+			}
+		}
+		cmdN := injectflags(cmd, nil, useDashN)
 		_, ok := cmpRun(false, cmdN)
 		if !ok {
-			log.Printf("compiler output differs, even with optimizers disabled (-N)")
-			cmd = append([]string{cmd[0], "-v", "-N", "-m=2"}, cmd[1:]...)
+			if useDashN {
+				log.Printf("compiler output differs, with optimizers disabled (-N)")
+			} else {
+				log.Printf("compiler output differs")
+			}
+			if dashcIndex >= 0 {
+				cmd[dashcIndex] = "-c=1"
+			}
+			cmd = injectflags(cmd, []string{"-v", "-m=2"}, useDashN)
 			break
 		}
-		cmd = append([]string{cmd[0], "-v", "-m=2"}, cmd[1:]...)
+		if dashcIndex >= 0 {
+			cmd[dashcIndex] = "-c=1"
+		}
+		cmd = injectflags(cmd, []string{"-v", "-m=2"}, false)
 		log.Printf("compiler output differs, only with optimizers enabled")
 
 	case tool == "asm" || strings.HasSuffix(tool, "a"): // assembler
@@ -293,11 +320,21 @@ func compareTool() {
 		extra = "-v=2"
 	}
 
-	cmdS := append([]string{cmd[0], extra}, cmd[1:]...)
-	outfile, ok = cmpRun(true, cmdS)
+	cmdS := injectflags(cmd, []string{extra}, false)
+	outfile, _ = cmpRun(true, cmdS)
 
 	fmt.Fprintf(os.Stderr, "\n%s\n", compareLogs(outfile))
 	os.Exit(2)
+}
+
+func injectflags(cmd []string, extra []string, addDashN bool) []string {
+	x := []string{cmd[0]}
+	if addDashN {
+		x = append(x, "-N")
+	}
+	x = append(x, extra...)
+	x = append(x, cmd[1:]...)
+	return x
 }
 
 func cmpRun(keepLog bool, cmd []string) (outfile string, match bool) {

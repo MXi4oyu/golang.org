@@ -6,11 +6,14 @@ package language_test
 
 import (
 	"fmt"
+	"net/http"
+
 	"golang.org/x/text/language"
 )
 
 func ExampleCanonType() {
 	p := func(id string) {
+		fmt.Printf("Default(%s) -> %s\n", id, language.Make(id))
 		fmt.Printf("BCP47(%s) -> %s\n", id, language.BCP47.Make(id))
 		fmt.Printf("Macro(%s) -> %s\n", id, language.Macro.Make(id))
 		fmt.Printf("All(%s) -> %s\n", id, language.All.Make(id))
@@ -21,18 +24,23 @@ func ExampleCanonType() {
 	p("bjd")
 	p("iw-Latn-fonipa-u-cu-usd")
 	// Output:
+	// Default(en-Latn) -> en-Latn
 	// BCP47(en-Latn) -> en
 	// Macro(en-Latn) -> en-Latn
 	// All(en-Latn) -> en
+	// Default(sh) -> sr-Latn
 	// BCP47(sh) -> sh
 	// Macro(sh) -> sh
 	// All(sh) -> sr-Latn
+	// Default(zh-cmn) -> cmn
 	// BCP47(zh-cmn) -> cmn
 	// Macro(zh-cmn) -> zh
 	// All(zh-cmn) -> zh
+	// Default(bjd) -> drl
 	// BCP47(bjd) -> drl
 	// Macro(bjd) -> bjd
 	// All(bjd) -> drl
+	// Default(iw-Latn-fonipa-u-cu-usd) -> he-Latn-fonipa-u-cu-usd
 	// BCP47(iw-Latn-fonipa-u-cu-usd) -> he-Latn-fonipa-u-cu-usd
 	// Macro(iw-Latn-fonipa-u-cu-usd) -> iw-Latn-fonipa-u-cu-usd
 	// All(iw-Latn-fonipa-u-cu-usd) -> he-Latn-fonipa-u-cu-usd
@@ -83,20 +91,25 @@ func ExampleTag_Region() {
 func ExampleRegion_TLD() {
 	us := language.MustParseRegion("US")
 	gb := language.MustParseRegion("GB")
+	uk := language.MustParseRegion("UK")
 	bu := language.MustParseRegion("BU")
 
 	fmt.Println(us.TLD())
 	fmt.Println(gb.TLD())
+	fmt.Println(uk.TLD())
 	fmt.Println(bu.TLD())
 
 	fmt.Println(us.Canonicalize().TLD())
 	fmt.Println(gb.Canonicalize().TLD())
+	fmt.Println(uk.Canonicalize().TLD())
 	fmt.Println(bu.Canonicalize().TLD())
 	// Output:
 	// US <nil>
 	// UK <nil>
+	// UK <nil>
 	// ZZ language: region is not a valid ccTLD
 	// US <nil>
+	// UK <nil>
 	// UK <nil>
 	// MM <nil>
 }
@@ -149,7 +162,7 @@ func ExampleCompose() {
 	// ja-US <nil>
 	// nl-US-u-nu-arabic <nil>
 	// nl-1901-u-co-phonebk <nil>
-	// nl-1901-u-nu-arabic <nil>
+	// nl-1901-u-co-phonebk-nu-arabic <nil>
 	// und-1901-u-co-phonebk <nil>
 	// de-u-co-phonebk <nil>
 	// de-1901 <nil>
@@ -192,13 +205,13 @@ func ExampleParse_errors() {
 	// ac-u: ill-formed
 }
 
-func ExampleParent() {
+func ExampleTag_Parent() {
 	p := func(tag string) {
 		fmt.Printf("parent(%v): %v\n", tag, language.Make(tag).Parent())
 	}
 	p("zh-CN")
 
-	// Australian English inherits from British English.
+	// Australian English inherits from World English.
 	p("en-AU")
 
 	// If the tag has a different maximized script from its parent, a tag with
@@ -221,7 +234,7 @@ func ExampleParent() {
 
 	// Output:
 	// parent(zh-CN): zh
-	// parent(en-AU): en-GB
+	// parent(en-AU): en-001
 	// parent(zh-HK): zh-Hant
 	// parent(zh-Hant): und
 	// parent(de-1994-u-co-phonebk): de
@@ -255,14 +268,14 @@ func ExampleMatcher() {
 	fmt.Println(m.Match(language.Make("en-AU")))
 
 	// Default to the first tag passed to the Matcher if there is no match.
-	fmt.Println(m.Match(language.Make("zu")))
+	fmt.Println(m.Match(language.Make("ar")))
 
 	// Get the default tag.
 	fmt.Println(m.Match())
 
 	fmt.Println("----")
 
-	// Croatian speakers will likely understand Serbian written in Latin script.
+	// Someone specifying sr-Latn is probably fine with getting Croatian.
 	fmt.Println(m.Match(language.Make("sr-Latn")))
 
 	// We match SimplifiedChinese, but with Low confidence.
@@ -279,8 +292,8 @@ func ExampleMatcher() {
 	fmt.Println(m.Match(language.Portuguese))
 
 	// Pick the first value passed to Match in case of a tie.
-	fmt.Println(m.Match(language.Dutch, language.Make("en-AU"), language.Make("af-NA")))
-	fmt.Println(m.Match(language.Dutch, language.Make("af-NA"), language.Make("en-AU")))
+	fmt.Println(m.Match(language.Dutch, language.Make("fr-BE"), language.Make("af-NA")))
+	fmt.Println(m.Match(language.Dutch, language.Make("af-NA"), language.Make("fr-BE")))
 
 	fmt.Println("----")
 
@@ -291,6 +304,18 @@ func ExampleMatcher() {
 	// However, for non-exact matches, it will treat deprecated versions as
 	// equivalent and consider other factors first.
 	fmt.Println(m.Match(language.Raw.Make("he-IL")))
+
+	fmt.Println("----")
+
+	// User settings passed to the Unicode extension are ignored for matching
+	// and preserved in the returned tag.
+	fmt.Println(m.Match(language.Make("de-u-co-phonebk"), language.Make("fr-u-cu-frf")))
+
+	// Even if the matching language is different.
+	fmt.Println(m.Match(language.Make("de-u-co-phonebk"), language.Make("br-u-cu-frf")))
+
+	// If there is no matching language, the options of the first preferred tag are used.
+	fmt.Println(m.Match(language.Make("de-u-co-phonebk")))
 
 	// Output:
 	// fr 2 Exact
@@ -303,37 +328,57 @@ func ExampleMatcher() {
 	// hr 6 High
 	// ----
 	// pt-BR 4 High
-	// en-GB 1 High
+	// fr 2 High
 	// af 3 High
 	// ----
 	// iw 9 Exact
-	// iw-IL 8 Exact
+	// he 10 Exact
+	// ----
+	// fr-u-cu-frf 2 Exact
+	// fr-u-cu-frf 2 High
+	// en-u-co-phonebk 0 No
+
+	// TODO: "he" should be "he-u-rg-IL High"
 }
 
-func ExampleTag_ComprehensibleTo() {
+func ExampleMatchStrings() {
+	// languages supported by this service:
+	matcher := language.NewMatcher([]language.Tag{
+		language.English, language.Dutch, language.German,
+	})
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		lang, _ := r.Cookie("lang")
+		tag, _ := language.MatchStrings(matcher, lang.String(), r.Header.Get("Accept-Language"))
+
+		fmt.Println("User language:", tag)
+	})
+}
+
+func ExampleComprehends() {
 	// Various levels of comprehensibility.
-	fmt.Println(language.English.ComprehensibleTo(language.English))
-	fmt.Println(language.BritishEnglish.ComprehensibleTo(language.AmericanEnglish))
+	fmt.Println(language.Comprehends(language.English, language.English))
+	fmt.Println(language.Comprehends(language.AmericanEnglish, language.BritishEnglish))
 
 	// An explicit Und results in no match.
-	fmt.Println(language.Und.ComprehensibleTo(language.English))
+	fmt.Println(language.Comprehends(language.English, language.Und))
 
 	fmt.Println("----")
 
 	// There is usually no mutual comprehensibility between different scripts.
-	fmt.Println(language.English.ComprehensibleTo(language.Make("en-Dsrt")))
+	fmt.Println(language.Comprehends(language.Make("en-Dsrt"), language.English))
 
 	// One exception is for Traditional versus Simplified Chinese, albeit with
 	// a low confidence.
-	fmt.Println(language.SimplifiedChinese.ComprehensibleTo(language.TraditionalChinese))
+	fmt.Println(language.Comprehends(language.TraditionalChinese, language.SimplifiedChinese))
 
 	fmt.Println("----")
 
 	// A Swiss German speaker will often understand High German.
-	fmt.Println(language.Make("de").ComprehensibleTo(language.Make("gsw")))
+	fmt.Println(language.Comprehends(language.Make("gsw"), language.Make("de")))
 
 	// The converse is not generally the case.
-	fmt.Println(language.Make("gsw").ComprehensibleTo(language.Make("de")))
+	fmt.Println(language.Comprehends(language.Make("de"), language.Make("gsw")))
 
 	// Output:
 	// Exact
@@ -345,25 +390,6 @@ func ExampleTag_ComprehensibleTo() {
 	// ----
 	// High
 	// No
-}
-
-func ExampleParseAcceptLanguage() {
-	// Tags are reordered based on their q rating. A missing q value means 1.0.
-	fmt.Println(language.ParseAcceptLanguage(" nn;q=0.3, en-gb;q=0.8, en,"))
-
-	m := language.NewMatcher([]language.Tag{language.Norwegian, language.Make("en-AU")})
-
-	t, _, _ := language.ParseAcceptLanguage("da, en-gb;q=0.8, en;q=0.7")
-	fmt.Println(m.Match(t...))
-
-	// Danish is pretty close to Norwegian.
-	t, _, _ = language.ParseAcceptLanguage(" da, nl")
-	fmt.Println(m.Match(t...))
-
-	// Output:
-	// [en en-GB nn] [1 0.8 0.3] <nil>
-	// en-AU 1 High
-	// no 0 High
 }
 
 func ExampleTag_values() {

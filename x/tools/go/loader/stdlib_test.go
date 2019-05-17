@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 package loader_test
 
 // This file enumerates all packages beneath $GOROOT, loads them, plus
@@ -33,7 +31,7 @@ func TestStdlib(t *testing.T) {
 		t.Skipf("incomplete std lib on %s", runtime.GOOS)
 	}
 	if testing.Short() {
-		t.Skip("skipping in short mode; uses tons of memory (golang.org/issue/14113)")
+		t.Skip("skipping in short mode; uses tons of memory (https://golang.org/issue/14113)")
 	}
 
 	runtime.GC()
@@ -122,7 +120,7 @@ func TestStdlib(t *testing.T) {
 
 func TestCgoOption(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping in short mode; uses tons of memory (golang.org/issue/14113)")
+		t.Skip("skipping in short mode; uses tons of memory (https://golang.org/issue/14113)")
 	}
 	switch runtime.GOOS {
 	// On these systems, the net and os/user packages don't use cgo

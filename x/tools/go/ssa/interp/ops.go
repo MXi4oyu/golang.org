@@ -2,14 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build go1.5
-
 package interp
 
 import (
 	"bytes"
 	"fmt"
-	exact "go/constant"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"strings"
@@ -42,7 +40,7 @@ func constValue(c *ssa.Const) value {
 		// TODO(adonovan): eliminate untyped constants from SSA form.
 		switch t.Kind() {
 		case types.Bool, types.UntypedBool:
-			return exact.BoolVal(c.Value)
+			return constant.BoolVal(c.Value)
 		case types.Int, types.UntypedInt:
 			// Assume sizeof(int) is same on host and target.
 			return int(c.Int64())
@@ -77,8 +75,8 @@ func constValue(c *ssa.Const) value {
 		case types.Complex128, types.UntypedComplex:
 			return c.Complex128()
 		case types.String, types.UntypedString:
-			if c.Value.Kind() == exact.String {
-				return exact.StringVal(c.Value)
+			if c.Value.Kind() == constant.String {
+				return constant.StringVal(c.Value)
 			}
 			return string(rune(c.Int64()))
 		}

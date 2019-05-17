@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func doIterNorm(f Form, s string) []byte {
+func doIterNormString(f Form, s string) []byte {
 	acc := []byte{}
 	i := Iter{}
 	i.InitString(f, s)
@@ -19,7 +19,20 @@ func doIterNorm(f Form, s string) []byte {
 	return acc
 }
 
+func doIterNorm(f Form, s string) []byte {
+	acc := []byte{}
+	i := Iter{}
+	i.Init(f, []byte(s))
+	for !i.Done() {
+		acc = append(acc, i.Next()...)
+	}
+	return acc
+}
+
 func TestIterNext(t *testing.T) {
+	runNormTests(t, "IterNext", func(f Form, out []byte, s string) []byte {
+		return doIterNormString(f, string(append(out, s...)))
+	})
 	runNormTests(t, "IterNext", func(f Form, out []byte, s string) []byte {
 		return doIterNorm(f, string(append(out, s...)))
 	})
@@ -60,7 +73,7 @@ var segmentTestsK = []SegmentTest{
 	{"\ufdfa" + grave(30), []string{"\u0635", "\u0644", "\u0649", " ", "\u0627", "\u0644", "\u0644", "\u0647", " ", "\u0639", "\u0644", "\u064a", "\u0647", " ", "\u0648", "\u0633", "\u0644", "\u0645" + grave(30), ""}},
 	{"\uFDFA" + grave(64), []string{"\u0635", "\u0644", "\u0649", " ", "\u0627", "\u0644", "\u0644", "\u0647", " ", "\u0639", "\u0644", "\u064a", "\u0647", " ", "\u0648", "\u0633", "\u0644", "\u0645" + grave(30), cgj + grave(30), cgj + grave(4), ""}},
 
-	// Hangul and Jamo are grouped togeter.
+	// Hangul and Jamo are grouped together.
 	{"\uAC00", []string{"\u1100\u1161", ""}},
 	{"\uAC01", []string{"\u1100\u1161\u11A8", ""}},
 	{"\u1100\u1161", []string{"\u1100\u1161", ""}},

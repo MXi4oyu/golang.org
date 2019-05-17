@@ -5,31 +5,25 @@
 package traditionalchinese
 
 import (
-	"errors"
 	"unicode/utf8"
 
 	"golang.org/x/text/encoding"
+	"golang.org/x/text/encoding/internal"
+	"golang.org/x/text/encoding/internal/identifier"
 	"golang.org/x/text/transform"
 )
 
+// All is a list of all defined encodings in this package.
+var All = []encoding.Encoding{Big5}
+
 // Big5 is the Big5 encoding, also known as Code Page 950.
-var Big5 encoding.Encoding = big5{}
+var Big5 encoding.Encoding = &big5
 
-type big5 struct{}
-
-func (big5) NewDecoder() transform.Transformer {
-	return big5Decoder{}
+var big5 = internal.Encoding{
+	&internal.SimpleEncoding{big5Decoder{}, big5Encoder{}},
+	"Big5",
+	identifier.Big5,
 }
-
-func (big5) NewEncoder() transform.Transformer {
-	return big5Encoder{}
-}
-
-func (big5) String() string {
-	return "Big5"
-}
-
-var errInvalidBig5 = errors.New("traditionalchinese: invalid Big5 encoding")
 
 type big5Decoder struct{ transform.NopResetter }
 
@@ -43,8 +37,12 @@ loop:
 
 		case 0x81 <= c0 && c0 < 0xff:
 			if nSrc+1 >= len(src) {
-				err = transform.ErrShortSrc
-				break loop
+				if !atEOF {
+					err = transform.ErrShortSrc
+					break loop
+				}
+				r, size = utf8.RuneError, 1
+				goto write
 			}
 			c1 := src[nSrc+1]
 			switch {
@@ -52,9 +50,12 @@ loop:
 				c1 -= 0x40
 			case 0xa1 <= c1 && c1 < 0xff:
 				c1 -= 0x62
+			case c1 < 0x40:
+				r, size = utf8.RuneError, 1
+				goto write
 			default:
-				err = errInvalidBig5
-				break loop
+				r, size = utf8.RuneError, 2
+				goto write
 			}
 			r, size = '\ufffd', 2
 			if i := int(c0-0x81)*157 + int(c1); i < len(decode) {
@@ -83,10 +84,10 @@ loop:
 			}
 
 		default:
-			err = errInvalidBig5
-			break loop
+			r, size = utf8.RuneError, 1
 		}
 
+	write:
 		if nDst+utf8.RuneLen(r) > len(dst) {
 			err = transform.ErrShortDst
 			break loop
@@ -102,9 +103,6 @@ loop:
 		nDst += copy(dst[nDst:], s)
 		continue loop
 	}
-	if atEOF && err == transform.ErrShortSrc {
-		err = errInvalidBig5
-	}
 	return nDst, nSrc, err
 }
 
@@ -118,6 +116,13 @@ func (big5Encoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err e
 		// Decode a 1-byte rune.
 		if r < utf8.RuneSelf {
 			size = 1
+			if nDst >= len(dst) {
+				err = transform.ErrShortDst
+				break
+			}
+			dst[nDst] = uint8(r)
+			nDst++
+			continue
 
 		} else {
 			// Decode a multi-byte rune.
@@ -169,16 +174,9 @@ func (big5Encoder) Transform(dst, src []byte, atEOF bool) (nDst, nSrc int, err e
 					goto write2
 				}
 			}
-			r = encoding.ASCIISub
-		}
-
-		if nDst >= len(dst) {
-			err = transform.ErrShortDst
+			err = internal.ErrASCIIReplacement
 			break
 		}
-		dst[nDst] = uint8(r)
-		nDst++
-		continue
 
 	write2:
 		if nDst+2 > len(dst) {

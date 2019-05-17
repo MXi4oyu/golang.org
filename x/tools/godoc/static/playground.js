@@ -40,27 +40,52 @@ here's a skeleton implementation of a playground transport.
         }
 */
 
-function HTTPTransport() {
+// HTTPTransport is the default transport.
+// enableVet enables running vet if a program was compiled and ran successfully.
+// If vet returned any errors, display them before the output of a program.
+function HTTPTransport(enableVet) {
 	'use strict';
 
-	// TODO(adg): support stderr
+	function playback(output, data) {
+		// Backwards compatibility: default values do not affect the output.
+		var events = data.Events || [];
+		var errors = data.Errors || "";
+		var status = data.Status || 0;
+		var isTest = data.IsTest || false;
+		var testsFailed = data.TestsFailed || 0;
 
-	function playback(output, events) {
 		var timeout;
 		output({Kind: 'start'});
 		function next() {
 			if (!events || events.length === 0) {
-				output({Kind: 'end'});
+				if (isTest) {
+					if (testsFailed > 0) {
+						output({Kind: 'system', Body: '\n'+testsFailed+' test'+(testsFailed>1?'s':'')+' failed.'});
+					} else {
+						output({Kind: 'system', Body: '\nAll tests passed.'});
+					}
+				} else {
+					if (status > 0) {
+						output({Kind: 'end', Body: 'status ' + status + '.'});
+					} else {
+						if (errors !== "") {
+							// errors are displayed only in the case of timeout.
+							output({Kind: 'end', Body: errors + '.'});
+						} else {
+							output({Kind: 'end'});
+						}
+					}
+				}
 				return;
 			}
 			var e = events.shift();
 			if (e.Delay === 0) {
-				output({Kind: 'stdout', Body: e.Message});
+				output({Kind: e.Kind, Body: e.Message});
 				next();
 				return;
 			}
 			timeout = setTimeout(function() {
-				output({Kind: 'stdout', Body: e.Message});
+				output({Kind: e.Kind, Body: e.Message});
 				next();
 			}, e.Delay / 1000000);
 		}
@@ -69,13 +94,19 @@ function HTTPTransport() {
 			Stop: function() {
 				clearTimeout(timeout);
 			}
-		}
+		};
 	}
 
 	function error(output, msg) {
 		output({Kind: 'start'});
 		output({Kind: 'stderr', Body: msg});
 		output({Kind: 'end'});
+	}
+
+	function buildFailed(output, msg) {
+		output({Kind: 'start'});
+		output({Kind: 'stderr', Body: msg});
+		output({Kind: 'system', Body: '\nGo build failed.'});
 	}
 
 	var seq = 0;
@@ -93,10 +124,39 @@ function HTTPTransport() {
 					if (!data) return;
 					if (playing != null) playing.Stop();
 					if (data.Errors) {
-						error(output, data.Errors);
+						if (data.Errors === 'process took too long') {
+							// Playback the output that was captured before the timeout.
+							playing = playback(output, data);
+						} else {
+							buildFailed(output, data.Errors);
+						}
 						return;
 					}
-					playing = playback(output, data.Events);
+
+					if (!enableVet) {
+						playing = playback(output, data);
+						return;
+					}
+
+					$.ajax("/vet", {
+						data: {"body": body},
+						type: "POST",
+						dataType: "json",
+						success: function(dataVet) {
+							if (dataVet.Errors) {
+								if (!data.Events) {
+									data.Events = [];
+								}
+								// inject errors from the vet as the first events in the output
+								data.Events.unshift({Message: 'Go vet exited.\n\n', Kind: 'system', Delay: 0});
+								data.Events.unshift({Message: dataVet.Errors, Kind: 'stderr', Delay: 0});
+							}
+							playing = playback(output, data);
+						},
+						error: function() {
+							playing = playback(output, data);
+						}
+					});
 				},
 				error: function() {
 					error(output, 'Error communicating with remote server.');
@@ -118,11 +178,16 @@ function SocketTransport() {
 	var id = 0;
 	var outputs = {};
 	var started = {};
-	var websocket = new WebSocket('ws://' + window.location.host + '/socket');
+	var websocket;
+	if (window.location.protocol == "http:") {
+		websocket = new WebSocket('ws://' + window.location.host + '/socket');
+	} else if (window.location.protocol == "https:") {
+		websocket = new WebSocket('wss://' + window.location.host + '/socket');
+	}
 
 	websocket.onclose = function() {
 		console.log('websocket connection closed');
-	}
+	};
 
 	websocket.onmessage = function(e) {
 		var m = JSON.parse(e.data);
@@ -134,7 +199,7 @@ function SocketTransport() {
 			started[m.Id] = true;
 		}
 		output({Kind: m.Kind, Body: m.Body});
-	}
+	};
 
 	function send(m) {
 		websocket.send(JSON.stringify(m));
@@ -169,8 +234,9 @@ function PlaygroundOutput(el) {
 			cl = write.Kind;
 
 		var m = write.Body;
-		if (write.Kind == 'end') 
+		if (write.Kind == 'end') {
 			m = '\nProgram exited' + (m?(': '+m):'.');
+		}
 
 		if (m.indexOf('IMAGE:') === 0) {
 			// TODO(adg): buffer all writes before creating image
@@ -201,7 +267,7 @@ function PlaygroundOutput(el) {
 
 		if (needScroll)
 			el.scrollTop = el.scrollHeight - el.offsetHeight;
-	}
+	};
 }
 
 (function() {
@@ -217,7 +283,7 @@ function PlaygroundOutput(el) {
     return function(write) {
       if (write.Body) lineHighlight(write.Body);
       wrappedOutput(write);
-    }
+    };
   }
   function lineClear() {
     $(".lineerror").removeClass("lineerror");
@@ -235,11 +301,13 @@ function PlaygroundOutput(el) {
   //  toysEl - toys select element (optional)
   //  enableHistory - enable using HTML5 history API (optional)
   //  transport - playground transport to use (default is HTTPTransport)
+  //  enableShortcuts - whether to enable shortcuts (Ctrl+S/Cmd+S to save) (default is false)
+  //  enableVet - enable running vet and displaying its errors
   function playground(opts) {
     var code = $(opts.codeEl);
-    var transport = opts['transport'] || new HTTPTransport();
+    var transport = opts['transport'] || new HTTPTransport(opts['enableVet']);
     var running;
-  
+
     // autoindent helpers.
     function insertTabs(n) {
       // find the selection start and end
@@ -273,8 +341,26 @@ function PlaygroundOutput(el) {
         insertTabs(tabs);
       }, 1);
     }
-  
+
+    // NOTE(cbro): e is a jQuery event, not a DOM event.
+    function handleSaveShortcut(e) {
+      if (e.isDefaultPrevented()) return false;
+      if (!e.metaKey && !e.ctrlKey) return false;
+      if (e.key != "S" && e.key != "s") return false;
+
+      e.preventDefault();
+
+      // Share and save
+      share(function(url) {
+        window.location.href = url + ".go?download=true";
+      });
+
+      return true;
+    }
+
     function keyHandler(e) {
+      if (opts.enableShortcuts && handleSaveShortcut(e)) return;
+
       if (e.keyCode == 9 && !e.ctrlKey) { // tab (but not ctrl-tab)
         insertTabs(1);
         e.preventDefault();
@@ -297,7 +383,7 @@ function PlaygroundOutput(el) {
     code.unbind('keydown').bind('keydown', keyHandler);
     var outdiv = $(opts.outputEl).empty();
     var output = $('<pre/>').appendTo(outdiv);
-  
+
     function body() {
       return $(opts.codeEl).val();
     }
@@ -307,7 +393,7 @@ function PlaygroundOutput(el) {
     function origin(href) {
       return (""+href).split("/").slice(0, 3).join("/");
     }
-  
+
     var pushedEmpty = (window.location.pathname == "/");
     function inputChanged() {
       if (pushedEmpty) {
@@ -350,7 +436,7 @@ function PlaygroundOutput(el) {
 
     function fmt() {
       loading();
-      var data = {"body": body()}; 
+      var data = {"body": body()};
       if ($(opts.fmtImportEl).is(":checked")) {
         data["imports"] = "true";
       }
@@ -369,48 +455,63 @@ function PlaygroundOutput(el) {
       });
     }
 
+    var shareURL; // jQuery element to show the shared URL.
+    var sharing = false; // true if there is a pending request.
+    var shareCallbacks = [];
+    function share(opt_callback) {
+      if (opt_callback) shareCallbacks.push(opt_callback);
+
+      if (sharing) return;
+      sharing = true;
+
+      var sharingData = body();
+      $.ajax("/share", {
+        processData: false,
+        data: sharingData,
+        type: "POST",
+        contentType: "text/plain; charset=utf-8",
+        complete: function(xhr) {
+          sharing = false;
+          if (xhr.status != 200) {
+            alert("Server error; try again.");
+            return;
+          }
+          if (opts.shareRedirect) {
+            window.location = opts.shareRedirect + xhr.responseText;
+          }
+          var path = "/p/" + xhr.responseText;
+          var url = origin(window.location) + path;
+
+          for (var i = 0; i < shareCallbacks.length; i++) {
+            shareCallbacks[i](url);
+          }
+          shareCallbacks = [];
+
+          if (shareURL) {
+            shareURL.show().val(url).focus().select();
+
+            if (rewriteHistory) {
+              var historyData = {"code": sharingData};
+              window.history.pushState(historyData, "", path);
+              pushedEmpty = false;
+            }
+          }
+        }
+      });
+    }
+
     $(opts.runEl).click(run);
     $(opts.fmtEl).click(fmt);
 
     if (opts.shareEl !== null && (opts.shareURLEl !== null || opts.shareRedirect !== null)) {
-      var shareURL;
       if (opts.shareURLEl) {
         shareURL = $(opts.shareURLEl).hide();
       }
-      var sharing = false;
       $(opts.shareEl).click(function() {
-        if (sharing) return;
-        sharing = true;
-        var sharingData = body();
-        $.ajax("/share", {
-          processData: false,
-          data: sharingData,
-          type: "POST",
-          complete: function(xhr) {
-            sharing = false;
-            if (xhr.status != 200) {
-              alert("Server error; try again.");
-              return;
-            }
-            if (opts.shareRedirect) {
-              window.location = opts.shareRedirect + xhr.responseText;
-            }
-            if (shareURL) {
-              var path = "/p/" + xhr.responseText;
-              var url = origin(window.location) + path;
-              shareURL.show().val(url).focus().select();
-  
-              if (rewriteHistory) {
-                var historyData = {"code": sharingData};
-                window.history.pushState(historyData, "", path);
-                pushedEmpty = false;
-              }
-            }
-          }
-        });
+        share();
       });
     }
-  
+
     if (opts.toysEl !== null) {
       $(opts.toysEl).bind('change', function() {
         var toy = $(this).val();

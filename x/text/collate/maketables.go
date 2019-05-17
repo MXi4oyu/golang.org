@@ -15,37 +15,27 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"golang.org/x/text/cldr"
-	"golang.org/x/text/collate"
-	"golang.org/x/text/collate/build"
-	"golang.org/x/text/collate/colltab"
-	"golang.org/x/text/language"
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
-	"path"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/text/collate"
+	"golang.org/x/text/collate/build"
+	"golang.org/x/text/internal/colltab"
+	"golang.org/x/text/internal/gen"
+	"golang.org/x/text/language"
+	"golang.org/x/text/unicode/cldr"
 )
 
 var (
-	root = flag.String("root",
-		"http://unicode.org/Public/UCA/"+unicode.Version+"/CollationAuxiliary.zip",
-		`URL of the Default Unicode Collation Element Table (DUCET). This can be a zip
-file containing the file allkeys_CLDR.txt or an allkeys.txt file.`)
-	cldrzip = flag.String("cldr",
-		"http://www.unicode.org/Public/cldr/"+cldr.Version+"/core.zip",
-		"URL of CLDR archive.")
 	test = flag.Bool("test", false,
 		"test existing tables; can be used to compare web data with package data.")
-	localFiles = flag.Bool("local", false,
-		"data files have been copied to the current directory; for debugging only.")
 	short = flag.Bool("short", false, `Use "short" alternatives, when available.`)
 	draft = flag.Bool("draft", false, `Use draft versions, when available.`)
 	tags  = flag.String("tags", "", "build tags to be included after +build directive")
@@ -58,8 +48,10 @@ file containing the file allkeys_CLDR.txt or an allkeys.txt file.`)
 		"comma-separated list of languages to exclude.")
 	include = flagStringSet("include", "", "",
 		"comma-separated list of languages to include. Include trumps exclude.")
-	types = flagStringSetAllowAll("types", "", "",
-		"comma-separated list of types that should be included in addition to the standard type.")
+	// TODO: Not included: unihan gb2312han zhuyin big5han (for size reasons)
+	// TODO: Not included: traditional (buggy for Bengali)
+	types = flagStringSetAllowAll("types", "standard,phonebook,phonetic,reformed,pinyin,stroke", "",
+		"comma-separated list of types that should be included.")
 )
 
 // stringSet implements an ordered set based on a list.  It implements flag.Value
@@ -192,29 +184,8 @@ func failOnError(e error) {
 	}
 }
 
-// openReader opens the URL or file given by url and returns it as an io.ReadCloser
-// or nil on error.
-func openReader(url *string) (io.ReadCloser, error) {
-	if *localFiles {
-		pwd, _ := os.Getwd()
-		*url = "file://" + path.Join(pwd, path.Base(*url))
-	}
-	t := &http.Transport{}
-	t.RegisterProtocol("file", http.NewFileTransport(http.Dir("/")))
-	c := &http.Client{Transport: t}
-	resp, err := c.Get(*url)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf(`bad GET status for "%s": %s`, *url, resp.Status)
-	}
-	return resp.Body, nil
-}
-
-func openArchive(url *string) *zip.Reader {
-	f, err := openReader(url)
-	failOnError(err)
+func openArchive() *zip.Reader {
+	f := gen.OpenCLDRCoreZip()
 	buffer, err := ioutil.ReadAll(f)
 	f.Close()
 	failOnError(err)
@@ -224,22 +195,18 @@ func openArchive(url *string) *zip.Reader {
 }
 
 // parseUCA parses a Default Unicode Collation Element Table of the format
-// specified in http://www.unicode.org/reports/tr10/#File_Format.
+// specified in https://www.unicode.org/reports/tr10/#File_Format.
 // It returns the variable top.
 func parseUCA(builder *build.Builder) {
 	var r io.ReadCloser
 	var err error
-	if strings.HasSuffix(*root, ".zip") {
-		for _, f := range openArchive(root).File {
-			if strings.HasSuffix(f.Name, "allkeys_CLDR.txt") {
-				r, err = f.Open()
-			}
+	for _, f := range openArchive().File {
+		if strings.HasSuffix(f.Name, "allkeys_CLDR.txt") {
+			r, err = f.Open()
 		}
-		if r == nil {
-			err = fmt.Errorf("file allkeys_CLDR.txt not found in archive %q", *root)
-		}
-	} else {
-		r, err = openReader(root)
+	}
+	if r == nil {
+		log.Fatal("File allkeys_CLDR.txt not found in archive.")
 	}
 	failOnError(err)
 	defer r.Close()
@@ -255,8 +222,8 @@ func parseUCA(builder *build.Builder) {
 			switch {
 			case strings.HasPrefix(line[1:], "version "):
 				a := strings.Split(line[1:], " ")
-				if a[1] != unicode.Version {
-					log.Fatalf("incompatible version %s; want %s", a[1], unicode.Version)
+				if a[1] != gen.UnicodeVersion() {
+					log.Fatalf("incompatible version %s; want %s", a[1], gen.UnicodeVersion())
 				}
 			case strings.HasPrefix(line[1:], "backwards "):
 				log.Fatalf("%d: unsupported option backwards", i)
@@ -358,8 +325,7 @@ func printExemplarCharacters(w io.Writer) {
 }
 
 func decodeCLDR(d *cldr.Decoder) *cldr.CLDR {
-	r, err := openReader(cldrzip)
-	failOnError(err)
+	r := gen.OpenCLDRCoreZip()
 	data, err := d.DecodeZip(r)
 	failOnError(err)
 	return data
@@ -447,6 +413,12 @@ func parseCharacters(chars string) []string {
 
 var fileRe = regexp.MustCompile(`.*/collation/(.*)\.xml`)
 
+// typeMap translates legacy type keys to their BCP47 equivalent.
+var typeMap = map[string]string{
+	"phonebook":   "phonebk",
+	"traditional": "trad",
+}
+
 // parseCollation parses XML files in the collation directory of the CLDR core.zip file.
 func parseCollation(b *build.Builder) {
 	d := &cldr.Decoder{}
@@ -460,19 +432,36 @@ func parseCollation(b *build.Builder) {
 		}
 		cs := x.Collations.Collation
 		sl := cldr.MakeSlice(&cs)
-		if !types.all {
-			sl.SelectAnyOf("type", append(types.s, x.Collations.Default())...)
+		if len(types.s) == 0 {
+			sl.SelectAnyOf("type", x.Collations.Default())
+		} else if !types.all {
+			sl.SelectAnyOf("type", types.s...)
 		}
 		sl.SelectOnePerGroup("alt", altInclude())
 
 		for _, c := range cs {
-			m := make(map[language.Part]string)
-			m[language.TagPart] = loc
-			if c.Type != x.Collations.Default() {
-				m[language.Extension('u')] = "co-" + c.Type
+			id, err := language.Parse(loc)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "invalid locale: %q", err)
+				continue
 			}
-			id, err := language.Compose(m)
-			failOnError(err)
+			// Support both old- and new-style defaults.
+			d := c.Type
+			if x.Collations.DefaultCollation == nil {
+				d = x.Collations.Default()
+			} else {
+				d = x.Collations.DefaultCollation.Data()
+			}
+			// We assume tables are being built either for search or collation,
+			// but not both. For search the default is always "search".
+			if d != c.Type && c.Type != "search" {
+				typ := c.Type
+				if len(c.Type) > 8 {
+					typ = typeMap[c.Type]
+				}
+				id, err = id.SetTypeForKey("co", typ)
+				failOnError(err)
+			}
 			t := b.Tailoring(id)
 			c.Process(processor{t})
 		}
@@ -533,17 +522,13 @@ func testCollator(c *collate.Collator) {
 }
 
 func main() {
-	flag.Parse()
+	gen.Init()
 	b := build.NewBuilder()
-	if *root != "" {
-		parseUCA(b)
+	parseUCA(b)
+	if tables.contains("chars") {
+		parseMain()
 	}
-	if *cldrzip != "" {
-		if tables.contains("chars") {
-			parseMain()
-		}
-		parseCollation(b)
-	}
+	parseCollation(b)
 
 	c, err := b.Build()
 	failOnError(err)
@@ -551,22 +536,18 @@ func main() {
 	if *test {
 		testCollator(collate.NewFromTable(c))
 	} else {
-		fmt.Println("// Generated by running")
-		fmt.Printf("//  maketables -root=%s -cldr=%s\n", *root, *cldrzip)
-		fmt.Println("// DO NOT EDIT")
-		fmt.Println("// TODO: implement more compact representation for sparse blocks.")
-		if *tags != "" {
-			fmt.Printf("// +build %s\n", *tags)
-		}
-		fmt.Println("")
-		fmt.Printf("package %s\n", *pkg)
+		w := &bytes.Buffer{}
+
+		gen.WriteUnicodeVersion(w)
+		gen.WriteCLDRVersion(w)
+
 		if tables.contains("collate") {
-			fmt.Println("")
-			_, err = b.Print(os.Stdout)
+			_, err = b.Print(w)
 			failOnError(err)
 		}
 		if tables.contains("chars") {
-			printExemplarCharacters(os.Stdout)
+			printExemplarCharacters(w)
 		}
+		gen.WriteGoFile("tables.go", *pkg, w.Bytes())
 	}
 }
